@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="description" content="Sunmint - Aplicativo simplificado para agricultores: vincule seu email e registre o plantio de árvores.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sunmint - TrueSight DAO</title>
+
+  <!-- Open Graph tags for WhatsApp, Facebook, LinkedIn, and social media previews -->
+  <meta property="og:title" content="Sunmint - TrueSight DAO">
+  <meta property="og:description" content="Aplicativo simplificado para agricultores: vincule seu email e registre o plantio de árvores.">
+  <meta property="og:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+  <meta property="og:url" content="https://sunmint.truesight.me/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TrueSight DAO">
+
+  <!-- Twitter Card tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sunmint - TrueSight DAO">
+  <meta name="twitter:description" content="Aplicativo simplificado para agricultores: vincule seu email e registre o plantio de árvores.">
+  <meta name="twitter:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 1rem;
+      padding: 1rem;
+      min-height: 100vh;
+      box-sizing: border-box;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background-color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: 1.8rem;
+      color: #333;
+      margin: 0.5rem 0 1rem;
+      text-align: center;
+    }
+    h2 {
+      font-size: 1.3rem;
+      color: #333;
+      margin: 0 0 1rem;
+    }
+    p.intro {
+      color: #555;
+      font-size: 1rem;
+      line-height: 1.5;
+      text-align: center;
+      margin: 0 0 1.5rem;
+    }
+    .lang-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .lang-toggle button {
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .lang-toggle button.active {
+      background-color: #2e7d32;
+      color: white;
+      border-color: #2e7d32;
+    }
+    label {
+      display: block;
+      margin: 0.8rem 0 0.3rem;
+      font-weight: bold;
+      color: #333;
+    }
+    input[type="email"], input[type="text"], input[type="file"], select {
+      width: 100%;
+      padding: 0.6rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button.submit-btn {
+      margin-top: 1rem;
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: white;
+      background-color: #2e7d32;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button.submit-btn:disabled {
+      background-color: #9e9e9e;
+      cursor: not-allowed;
+    }
+    #status, #treeStatus {
+      margin-top: 0.8rem;
+      font-size: 0.95rem;
+      color: #333;
+    }
+    #status.error, #treeStatus.error {
+      color: #c62828;
+    }
+    #status.success, #treeStatus.success {
+      color: #2e7d32;
+    }
+    .hint {
+      font-size: 0.85rem;
+      color: #777;
+      margin-top: 0.3rem;
+    }
+    pre {
+      background-color: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 0.8rem;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .submission-result h3 {
+      font-size: 1rem;
+      margin: 1rem 0 0.4rem;
+    }
+    @media print {
+      pre {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        page-break-inside: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="lang-toggle">
+    <button id="langPt" class="active" onclick="setLang('pt')">Português</button>
+    <button id="langEn" onclick="setLang('en')">English</button>
+  </div>
+
+  <div class="container" style="text-align:center;">
+    <img height="120px" src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo"/>
+    <h1>Sunmint</h1>
+    <p class="intro" data-i18n="intro">Aplicativo simplificado para agricultores da TrueSight DAO. Vincule seu email e registre o plantio de árvores em poucos passos.</p>
+  </div>
+
+  <!-- Section 1: Link email -->
+  <div class="container">
+    <h2 data-i18n="emailHeading">1. Vincule seu email</h2>
+    <p class="hint" data-i18n="emailHint">Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.</p>
+    <label for="emailInput" data-i18n="emailLabel">Seu email</label>
+    <input type="email" id="emailInput" placeholder="voce@exemplo.com" autocomplete="email">
+    <button class="submit-btn" id="emailSubmitBtn" onclick="submitEmailLink()" data-i18n="emailButton">Vincular email</button>
+    <div id="status" aria-live="polite"></div>
+  </div>
+
+  <!-- Section 2: Report tree planting -->
+  <div class="container">
+    <h2 data-i18n="treeHeading">2. Registrar plantio de árvore</h2>
+    <p class="hint" data-i18n="treeHint">Envie uma foto da árvore plantada. Localização (se disponível) e data são registradas automaticamente.</p>
+
+    <label for="treeSpecies" data-i18n="speciesLabel">Espécie da árvore</label>
+    <input type="text" id="treeSpecies" placeholder="Cacau, Cacau-cabruca, ..." data-i18n-placeholder="speciesPlaceholder">
+
+    <label for="treePhoto" data-i18n="photoLabel">Foto da árvore</label>
+    <input type="file" id="treePhoto" accept="image/*" capture="environment">
+
+    <button class="submit-btn" id="treeSubmitBtn" onclick="submitTreePlanting()" data-i18n="treeButton">Enviar registro</button>
+    <div id="treeStatus" aria-live="polite"></div>
+  </div>
+
+  <div class="container submission-result" id="submissionResult" style="display:none;">
+    <h3 data-i18n="requestHeading">Pedido enviado (assinado)</h3>
+    <pre id="requestPre"></pre>
+    <h3 data-i18n="responseHeading">Resposta do servidor</h3>
+    <pre id="responsePre"></pre>
+  </div>
+
+  <script>
+    // ── i18n ─────────────────────────────────────────────────────────────
+    const I18N = {
+      pt: {
+        intro: "Aplicativo simplificado para agricultores da TrueSight DAO. Vincule seu email e registre o plantio de árvores em poucos passos.",
+        emailHeading: "1. Vincule seu email",
+        emailHint: "Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.",
+        emailLabel: "Seu email",
+        emailButton: "Vincular email",
+        treeHeading: "2. Registrar plantio de árvore",
+        treeHint: "Envie uma foto da árvore plantada. Localização (se disponível) e data são registradas automaticamente.",
+        speciesLabel: "Espécie da árvore",
+        speciesPlaceholder: "Cacau, Cacau-cabruca, ...",
+        photoLabel: "Foto da árvore",
+        treeButton: "Enviar registro",
+        requestHeading: "Pedido enviado (assinado)",
+        responseHeading: "Resposta do servidor",
+        emailRequired: "Por favor, digite um email.",
+        emailSending: "Enviando...",
+        emailSent: "Verifique seu email para confirmar o link.",
+        emailVerifying: "Confirmando seu email...",
+        emailVerified: "Email confirmado com sucesso!",
+        emailError: "Erro: ",
+        speciesRequired: "Por favor, informe a espécie da árvore.",
+        photoRequired: "Por favor, selecione uma foto.",
+        treeSending: "Enviando registro...",
+        treeSent: "Registro de plantio enviado com sucesso!",
+        treeError: "Erro: ",
+        locationNote: " (localização não disponível)",
+      },
+      en: {
+        intro: "A simplified TrueSight DAO app for farmers. Link your email and report tree plantings in a few steps.",
+        emailHeading: "1. Link your email",
+        emailHint: "Your email identifies you to TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.",
+        emailLabel: "Your email",
+        emailButton: "Link email",
+        treeHeading: "2. Report a tree planting",
+        treeHint: "Upload a photo of the planted tree. Location (if available) and date are recorded automatically.",
+        speciesLabel: "Tree species",
+        speciesPlaceholder: "Cacao, Cabruca cacao, ...",
+        photoLabel: "Tree photo",
+        treeButton: "Submit report",
+        requestHeading: "Signed request sent",
+        responseHeading: "Server response",
+        emailRequired: "Please enter an email.",
+        emailSending: "Sending...",
+        emailSent: "Check your email to confirm the link.",
+        emailVerifying: "Confirming your email...",
+        emailVerified: "Email confirmed successfully!",
+        emailError: "Error: ",
+        speciesRequired: "Please enter the tree species.",
+        photoRequired: "Please select a photo.",
+        treeSending: "Sending report...",
+        treeSent: "Tree planting report sent successfully!",
+        treeError: "Error: ",
+        locationNote: " (location not available)",
+      },
+    };
+    let currentLang = localStorage.getItem('sunmint_lang') || 'pt';
+
+    function t(key) {
+      return (I18N[currentLang] && I18N[currentLang][key]) || I18N.pt[key] || key;
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('sunmint_lang', lang);
+      document.documentElement.lang = lang;
+      document.getElementById('langPt').classList.toggle('active', lang === 'pt');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        el.textContent = t(el.getAttribute('data-i18n'));
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+        el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+      });
+    }
+
+    // ── Edgar endpoints ──────────────────────────────────────────────────
+    const EDGAR_BASE = 'https://edgar.truesight.me';
+    const EDGAR_SUBMIT_URL = `${EDGAR_BASE}/dao/submit_contribution`;
+
+    // ── RSA identity (same scheme as dapp/create_signature.html) ────────
+    function arrayBufferToBase64(buffer) {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return window.btoa(binary);
+    }
+
+    function base64ToArrayBuffer(base64) {
+      const binary = window.atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    async function ensureKeyPair() {
+      let publicKey = localStorage.getItem('publicKey');
+      let privateKey = localStorage.getItem('privateKey');
+      if (publicKey && privateKey) return { publicKey, privateKey };
+
+      const keyPair = await window.crypto.subtle.generateKey(
+        { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+        true,
+        ['sign', 'verify']
+      );
+      const publicKeyRaw = await window.crypto.subtle.exportKey('spki', keyPair.publicKey);
+      const privateKeyRaw = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+      publicKey = arrayBufferToBase64(publicKeyRaw);
+      privateKey = arrayBufferToBase64(privateKeyRaw);
+      localStorage.setItem('publicKey', publicKey);
+      localStorage.setItem('privateKey', privateKey);
+      return { publicKey, privateKey };
+    }
+
+    async function signText(privateKeyBase64, text) {
+      const privateKeyObj = await window.crypto.subtle.importKey(
+        'pkcs8',
+        base64ToArrayBuffer(privateKeyBase64),
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const encoder = new TextEncoder();
+      const signature = await window.crypto.subtle.sign(
+        'RSASSA-PKCS1-v1_5',
+        privateKeyObj,
+        encoder.encode(text)
+      );
+      return arrayBufferToBase64(signature);
+    }
+
+    function renderSubmissionResult(shareText, responseData) {
+      document.getElementById('requestPre').textContent = shareText;
+      document.getElementById('responsePre').textContent = JSON.stringify(responseData, null, 2);
+      document.getElementById('submissionResult').style.display = 'block';
+    }
+
+    // ── Section 1: link email (mirrors create_signature.html's flow) ───
+    async function submitEmailEvent(eventName, attributes) {
+      const { publicKey, privateKey } = await ensureKeyPair();
+      const attrLines = Object.entries(attributes).map(([k, v]) => `- ${k}: ${v}`).join('\n');
+      const requestText = `[${eventName}]\n${attrLines}\n--------`;
+      const signature = await signText(privateKey, requestText);
+      const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.href}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
+
+      const formData = new FormData();
+      formData.append('text', shareText);
+      const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+      const rawText = await resp.text();
+      let data = {};
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch (_) { data = {}; }
+      if (!resp.ok) {
+        throw new Error((data && data.error) || rawText || `HTTP ${resp.status}`);
+      }
+      renderSubmissionResult(shareText, data);
+      return data;
+    }
+
+    async function submitEmailLink() {
+      const statusEl = document.getElementById('status');
+      const email = document.getElementById('emailInput').value.trim();
+      if (!email) {
+        statusEl.textContent = t('emailRequired');
+        statusEl.className = 'error';
+        return;
+      }
+      const btn = document.getElementById('emailSubmitBtn');
+      btn.disabled = true;
+      statusEl.className = '';
+      statusEl.textContent = t('emailSending');
+      try {
+        await submitEmailEvent('EMAIL REGISTERED EVENT', { Email: email });
+        statusEl.textContent = t('emailSent');
+        statusEl.className = 'success';
+      } catch (err) {
+        statusEl.textContent = t('emailError') + err.message;
+        statusEl.className = 'error';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Auto-fire EMAIL VERIFICATION EVENT if opened via the emailed link (?vk=&em=)
+    async function checkVerificationLink() {
+      const url = new URL(window.location.href);
+      const vk = url.searchParams.get('vk');
+      const em = url.searchParams.get('em');
+      if (!vk || !em) return;
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = t('emailVerifying');
+      statusEl.className = '';
+      try {
+        await submitEmailEvent('EMAIL VERIFICATION EVENT', { 'Verification Key': vk, Email: em });
+        statusEl.textContent = t('emailVerified');
+        statusEl.className = 'success';
+      } catch (err) {
+        statusEl.textContent = t('emailError') + err.message;
+        statusEl.className = 'error';
+      } finally {
+        url.searchParams.delete('vk');
+        url.searchParams.delete('em');
+        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+      }
+    }
+
+    // ── Section 2: report tree planting (mirrors report_tree_planting.html) ─
+    let latitude = null;
+    let longitude = null;
+
+    function requestLocation() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { latitude = pos.coords.latitude; longitude = pos.coords.longitude; },
+        () => { /* optional — submission proceeds without location */ },
+        { timeout: 8000 }
+      );
+    }
+
+    async function submitTreePlanting() {
+      const statusEl = document.getElementById('treeStatus');
+      const species = document.getElementById('treeSpecies').value.trim();
+      const photoInput = document.getElementById('treePhoto');
+      const photoFile = photoInput.files && photoInput.files[0];
+
+      if (!species) {
+        statusEl.textContent = t('speciesRequired');
+        statusEl.className = 'error';
+        return;
+      }
+      if (!photoFile) {
+        statusEl.textContent = t('photoRequired');
+        statusEl.className = 'error';
+        return;
+      }
+
+      const btn = document.getElementById('treeSubmitBtn');
+      btn.disabled = true;
+      statusEl.className = '';
+      statusEl.textContent = t('treeSending');
+
+      try {
+        const { publicKey, privateKey } = await ensureKeyPair();
+        const plantingTime = new Date().toISOString();
+        const now = new Date();
+        const pad = (n) => n.toString().padStart(2, '0');
+        const yyyymmddhhmmss = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        const safePublicKey = publicKey.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+        const ext = (photoFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const photoDestinationURL = `https://github.com/TrueSightDAO/sunmint/tree/main/images/${yyyymmddhhmmss}_${safePublicKey}.${ext}`;
+
+        const locationLine = (latitude != null && longitude != null)
+          ? `- Latitude: ${latitude}\n- Longitude: ${longitude}\n`
+          : `- Latitude: \n- Longitude: \n`;
+
+        const requestText = `[TREE PLANTING EVENT]\n${locationLine}- Species: ${species}\n- Planting Time: ${plantingTime}\n- Photo URL: ${photoDestinationURL}\n- Submission Source: ${window.location.href}\n--------`;
+        const signature = await signText(privateKey, requestText);
+        const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.href}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
+
+        const formData = new FormData();
+        formData.append('text', shareText);
+        formData.append('attachment', photoFile, `tree_photo.${ext}`);
+
+        const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+        const rawText = await resp.text();
+        let data = {};
+        try { data = rawText ? JSON.parse(rawText) : {}; } catch (_) { data = {}; }
+        if (!resp.ok) {
+          throw new Error((data && data.error) || rawText || `HTTP ${resp.status}`);
+        }
+
+        renderSubmissionResult(shareText, data);
+        statusEl.textContent = t('treeSent') + (latitude == null ? t('locationNote') : '');
+        statusEl.className = 'success';
+        document.getElementById('treeSpecies').value = '';
+        photoInput.value = '';
+      } catch (err) {
+        statusEl.textContent = t('treeError') + err.message;
+        statusEl.className = 'error';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── init ─────────────────────────────────────────────────────────────
+    setLang(currentLang);
+    requestLocation();
+    checkVerificationLink();
+  </script>
+</body>
+</html>
