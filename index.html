@@ -188,6 +188,7 @@
 
     <button class="submit-btn" id="treeSubmitBtn" onclick="submitTreePlanting()" data-i18n="treeButton">Enviar registro</button>
     <div id="treeStatus" aria-live="polite"></div>
+    <div id="pendingBadge" class="hint" aria-live="polite" style="display:none;"></div>
   </div>
 
   <div class="container submission-result" id="submissionResult" style="display:none;">
@@ -207,7 +208,7 @@
         emailLabel: "Seu email",
         emailButton: "Vincular email",
         treeHeading: "2. Registrar plantio de árvore",
-        treeHint: "Envie uma foto da árvore plantada. Localização (se disponível) e data são registradas automaticamente.",
+        treeHint: "Envie uma foto da árvore plantada. Funciona sem internet — cada registro fica salvo neste telefone e é enviado automaticamente quando houver conexão. Localização (se disponível) e data são registradas automaticamente.",
         speciesLabel: "Espécie da árvore",
         speciesPlaceholder: "Cacau, Cacau-cabruca, ...",
         photoLabel: "Foto da árvore",
@@ -222,10 +223,15 @@
         emailError: "Erro: ",
         speciesRequired: "Por favor, informe a espécie da árvore.",
         photoRequired: "Por favor, selecione uma foto.",
-        treeSending: "Enviando registro...",
-        treeSent: "Registro de plantio enviado com sucesso!",
+        treeSending: "Salvando registro...",
+        treeSent: "Registro enviado com sucesso!",
+        treeSavedOffline: "Salvo neste telefone. Será enviado automaticamente quando houver internet.",
         treeError: "Erro: ",
         locationNote: " (localização não disponível)",
+        pendingSingular: "1 registro pendente de envio (sem internet no momento).",
+        pendingPlural: " registros pendentes de envio (sem internet no momento).",
+        pendingUploading: "Enviando registros pendentes...",
+        pendingUploaded: "Registro(s) pendente(s) enviado(s) com sucesso!",
       },
       en: {
         intro: "A simplified TrueSight DAO app for farmers. Link your email and report tree plantings in a few steps.",
@@ -234,7 +240,7 @@
         emailLabel: "Your email",
         emailButton: "Link email",
         treeHeading: "2. Report a tree planting",
-        treeHint: "Upload a photo of the planted tree. Location (if available) and date are recorded automatically.",
+        treeHint: "Upload a photo of the planted tree. Works without internet — each report is saved on this phone and sent automatically once there's a connection. Location (if available) and date are recorded automatically.",
         speciesLabel: "Tree species",
         speciesPlaceholder: "Cacao, Cabruca cacao, ...",
         photoLabel: "Tree photo",
@@ -249,10 +255,15 @@
         emailError: "Error: ",
         speciesRequired: "Please enter the tree species.",
         photoRequired: "Please select a photo.",
-        treeSending: "Sending report...",
-        treeSent: "Tree planting report sent successfully!",
+        treeSending: "Saving report...",
+        treeSent: "Report sent successfully!",
+        treeSavedOffline: "Saved on this phone. It'll be sent automatically once there's internet.",
         treeError: "Error: ",
         locationNote: " (location not available)",
+        pendingSingular: "1 report pending upload (no internet right now).",
+        pendingPlural: " reports pending upload (no internet right now).",
+        pendingUploading: "Uploading pending reports...",
+        pendingUploaded: "Pending report(s) uploaded successfully!",
       },
     };
     let currentLang = localStorage.getItem('sunmint_lang') || 'pt';
@@ -405,6 +416,18 @@
     }
 
     // ── Section 2: report tree planting (mirrors report_tree_planting.html) ─
+    //
+    // Farms often have no internet connection. So: sign the report and queue
+    // it in IndexedDB (photo blob + already-signed text) the moment the
+    // farmer taps submit, reset the form immediately so they can capture the
+    // next tree right away, and try to flush the whole queue in the
+    // background — on this submit, on page load, and whenever the browser
+    // regains connectivity. Mirrors the technique in
+    // capoeira/assets/js/practice-event-submit.js (localStorage history +
+    // submitted_at marker + backfillUnsent() on load), adapted to IndexedDB
+    // because photos are binary blobs too large/numerous for localStorage's
+    // quota — everything else (immediate-attempt, leave unmarked on
+    // failure, rescan on load) is the same shape.
     let latitude = null;
     let longitude = null;
 
@@ -415,6 +438,129 @@
         () => { /* optional — submission proceeds without location */ },
         { timeout: 8000 }
       );
+    }
+
+    const TREE_QUEUE_DB = 'sunmint_offline';
+    const TREE_QUEUE_STORE = 'tree_reports';
+
+    function openTreeQueueDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(TREE_QUEUE_DB, 1);
+        req.onupgradeneeded = () => {
+          req.result.createObjectStore(TREE_QUEUE_STORE, { keyPath: 'id' });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function queueTreeReport(record) {
+      const db = await openTreeQueueDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(TREE_QUEUE_STORE, 'readwrite');
+        tx.objectStore(TREE_QUEUE_STORE).put(record);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getPendingTreeReports() {
+      const db = await openTreeQueueDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(TREE_QUEUE_STORE, 'readonly');
+        const req = tx.objectStore(TREE_QUEUE_STORE).getAll();
+        req.onsuccess = () => resolve((req.result || []).filter((r) => !r.uploaded));
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function markTreeReportUploaded(id) {
+      const db = await openTreeQueueDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(TREE_QUEUE_STORE, 'readwrite');
+        const store = tx.objectStore(TREE_QUEUE_STORE);
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const record = getReq.result;
+          if (record) {
+            record.uploaded = true;
+            record.uploadedAt = new Date().toISOString();
+            store.put(record);
+          }
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function uploadTreeReport(record) {
+      const formData = new FormData();
+      formData.append('text', record.shareText);
+      formData.append('attachment', record.photoBlob, record.photoName);
+      const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+      const rawText = await resp.text();
+      let data = {};
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch (_) { data = {}; }
+      // 409 means Edgar already processed this exact signed request (e.g. a
+      // prior flush attempt that succeeded server-side but failed to report
+      // back, common on flaky rural connections) — treat as success so it
+      // doesn't stay stuck retrying forever.
+      if (!resp.ok && resp.status !== 409) {
+        throw new Error((data && data.error) || rawText || `HTTP ${resp.status}`);
+      }
+      return data;
+    }
+
+    async function updatePendingBadge() {
+      const badge = document.getElementById('pendingBadge');
+      try {
+        const pending = await getPendingTreeReports();
+        if (pending.length === 0) {
+          badge.style.display = 'none';
+          return;
+        }
+        badge.style.display = 'block';
+        badge.textContent = pending.length === 1
+          ? t('pendingSingular')
+          : pending.length + t('pendingPlural');
+      } catch (_) { /* IndexedDB unavailable — badge just stays hidden */ }
+    }
+
+    // Flush every queued-but-unuploaded report. Safe to call repeatedly
+    // (page load, 'online' event, right after queuing a new one) — anything
+    // already uploaded is skipped, anything that fails (still offline) is
+    // simply left for the next attempt.
+    async function flushTreeReportQueue() {
+      let pending;
+      try {
+        pending = await getPendingTreeReports();
+      } catch (_) {
+        return;
+      }
+      if (pending.length === 0) return;
+
+      const statusEl = document.getElementById('treeStatus');
+      statusEl.textContent = t('pendingUploading');
+      statusEl.className = '';
+
+      let uploadedCount = 0;
+      let lastResult = null;
+      for (const record of pending) {
+        try {
+          lastResult = await uploadTreeReport(record);
+          await markTreeReportUploaded(record.id);
+          uploadedCount++;
+        } catch (_) {
+          // Still offline (or Edgar unreachable) — leave queued, try again later.
+        }
+      }
+
+      if (uploadedCount > 0) {
+        statusEl.textContent = t('pendingUploaded');
+        statusEl.className = 'success';
+        if (lastResult) renderSubmissionResult(pending[pending.length - 1].shareText, lastResult);
+      }
+      await updatePendingBadge();
     }
 
     async function submitTreePlanting() {
@@ -447,33 +593,44 @@
         const yyyymmddhhmmss = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
         const safePublicKey = publicKey.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
         const ext = (photoFile.name.split('.').pop() || 'jpg').toLowerCase();
-        const photoDestinationURL = `https://github.com/TrueSightDAO/sunmint/tree/main/images/${yyyymmddhhmmss}_${safePublicKey}.${ext}`;
+        const reportId = `${yyyymmddhhmmss}_${safePublicKey}`;
+        const photoDestinationURL = `https://github.com/TrueSightDAO/sunmint/tree/main/images/${reportId}.${ext}`;
 
         const locationLine = (latitude != null && longitude != null)
           ? `- Latitude: ${latitude}\n- Longitude: ${longitude}\n`
           : `- Latitude: \n- Longitude: \n`;
 
+        // Sign now, at capture time — Planting Time reflects the actual
+        // moment of the report, not whenever a connection is later found.
         const requestText = `[TREE PLANTING EVENT]\n${locationLine}- Species: ${species}\n- Planting Time: ${plantingTime}\n- Photo URL: ${photoDestinationURL}\n- Submission Source: ${window.location.href}\n--------`;
         const signature = await signText(privateKey, requestText);
         const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.href}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
 
-        const formData = new FormData();
-        formData.append('text', shareText);
-        formData.append('attachment', photoFile, `tree_photo.${ext}`);
+        await queueTreeReport({
+          id: reportId,
+          shareText,
+          photoBlob: photoFile,
+          photoName: `tree_photo.${ext}`,
+          createdAt: plantingTime,
+          uploaded: false,
+        });
 
-        const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
-        const rawText = await resp.text();
-        let data = {};
-        try { data = rawText ? JSON.parse(rawText) : {}; } catch (_) { data = {}; }
-        if (!resp.ok) {
-          throw new Error((data && data.error) || rawText || `HTTP ${resp.status}`);
-        }
-
-        renderSubmissionResult(shareText, data);
-        statusEl.textContent = t('treeSent') + (latitude == null ? t('locationNote') : '');
-        statusEl.className = 'success';
+        // Reset the form immediately — the farmer can capture the next tree
+        // right away, independent of whether the upload below succeeds.
+        const hadLocation = latitude != null;
         document.getElementById('treeSpecies').value = '';
         photoInput.value = '';
+        statusEl.textContent = t('treeSavedOffline');
+        statusEl.className = 'success';
+        await updatePendingBadge();
+
+        // Try to flush right away — if online, this one (and any earlier
+        // queued ones) go out immediately and the status upgrades to "sent".
+        flushTreeReportQueue().then(() => {
+          if (!hadLocation) {
+            statusEl.textContent = statusEl.textContent + t('locationNote');
+          }
+        });
       } catch (err) {
         statusEl.textContent = t('treeError') + err.message;
         statusEl.className = 'error';
@@ -486,6 +643,9 @@
     setLang(currentLang);
     requestLocation();
     checkVerificationLink();
+    updatePendingBadge();
+    flushTreeReportQueue(); // backfill anything queued from a previous offline session
+    window.addEventListener('online', flushTreeReportQueue);
   </script>
 </body>
 </html>
