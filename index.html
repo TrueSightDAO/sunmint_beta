@@ -44,6 +44,18 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       margin-bottom: 1.5rem;
     }
+    /* Secondary/optional sections (email linking) — same container shell for
+       consistency, but visually lighter so they don't compete with the
+       primary action above them. */
+    .container.optional-section {
+      box-shadow: none;
+      border: 1px solid #e5e5e5;
+    }
+    .container.optional-section h3 {
+      color: #666;
+      font-size: 1.05rem;
+      margin: 0 0 0.6rem;
+    }
     h1 {
       font-size: 1.8rem;
       color: #333;
@@ -112,6 +124,38 @@
       background-color: #9e9e9e;
       cursor: not-allowed;
     }
+    #treeCameraPreview, #treePhotoPreview {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin-top: 0.4rem;
+      background-color: #eee;
+      display: none;
+    }
+    .camera-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.6rem;
+    }
+    button.camera-btn {
+      flex: 1;
+      padding: 0.6rem;
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: white;
+      background-color: #2e7d32;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button.camera-btn.secondary {
+      background-color: #757575;
+    }
+    button.camera-btn:disabled {
+      background-color: #9e9e9e;
+      cursor: not-allowed;
+    }
     #status, #treeStatus {
       margin-top: 0.8rem;
       font-size: 0.95rem;
@@ -165,30 +209,43 @@
     <p class="intro" data-i18n="intro">Aplicativo simplificado para agricultores da TrueSight DAO. Vincule seu email e registre o plantio de árvores em poucos passos.</p>
   </div>
 
-  <!-- Section 1: Link email -->
+  <!-- Section 1 (primary action): Report tree planting. Doesn't require
+       linking an email first — a keypair is generated on demand and every
+       report is signed with it regardless of email status. Leads the page
+       since this is the actual reason a farmer opens the app in the field. -->
   <div class="container">
-    <h2 data-i18n="emailHeading">1. Vincule seu email</h2>
-    <p class="hint" data-i18n="emailHint">Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.</p>
-    <label for="emailInput" data-i18n="emailLabel">Seu email</label>
-    <input type="email" id="emailInput" placeholder="voce@exemplo.com" autocomplete="email">
-    <button class="submit-btn" id="emailSubmitBtn" onclick="submitEmailLink()" data-i18n="emailButton">Vincular email</button>
-    <div id="status" aria-live="polite"></div>
-  </div>
-
-  <!-- Section 2: Report tree planting -->
-  <div class="container">
-    <h2 data-i18n="treeHeading">2. Registrar plantio de árvore</h2>
+    <h2 data-i18n="treeHeading">Registrar plantio de árvore</h2>
     <p class="hint" data-i18n="treeHint">Envie uma foto da árvore plantada. Localização (se disponível) e data são registradas automaticamente.</p>
 
     <label for="treeSpecies" data-i18n="speciesLabel">Espécie da árvore</label>
     <input type="text" id="treeSpecies" placeholder="Cacau, Cacau-cabruca, ..." data-i18n-placeholder="speciesPlaceholder">
 
-    <label for="treePhoto" data-i18n="photoLabel">Foto da árvore</label>
-    <input type="file" id="treePhoto" accept="image/*" capture="environment">
+    <label data-i18n="photoLabel">Foto da árvore</label>
+    <video id="treeCameraPreview" autoplay playsinline muted></video>
+    <canvas id="treeCaptureCanvas" style="display:none;"></canvas>
+    <img id="treePhotoPreview" style="display:none;" alt="">
+    <div class="camera-row">
+      <button type="button" class="camera-btn" id="captureBtn" onclick="capturePhoto()" data-i18n="captureButton">Tirar foto</button>
+      <button type="button" class="camera-btn secondary" id="retakeBtn" onclick="retakePhoto()" style="display:none;" data-i18n="retakeButton">Tirar outra</button>
+    </div>
+    <div id="cameraStatus" class="hint" aria-live="polite"></div>
 
     <button class="submit-btn" id="treeSubmitBtn" onclick="submitTreePlanting()" data-i18n="treeButton">Enviar registro</button>
     <div id="treeStatus" aria-live="polite"></div>
     <div id="pendingBadge" class="hint" aria-live="polite" style="display:none;"></div>
+  </div>
+
+  <!-- Section 2 (optional, secondary): Link email. Not a prerequisite for
+       reporting above — this only attaches a human-readable contact to the
+       public key that's already signing every report, so keep it visually
+       lighter than the primary action. -->
+  <div class="container optional-section">
+    <h3 data-i18n="emailHeading">Vincular email (opcional)</h3>
+    <p class="hint" data-i18n="emailHint">Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.</p>
+    <label for="emailInput" data-i18n="emailLabel">Seu email</label>
+    <input type="email" id="emailInput" placeholder="voce@exemplo.com" autocomplete="email">
+    <button class="submit-btn" id="emailSubmitBtn" onclick="submitEmailLink()" data-i18n="emailButton">Vincular email</button>
+    <div id="status" aria-live="polite"></div>
   </div>
 
   <div class="container submission-result" id="submissionResult" style="display:none;">
@@ -202,16 +259,22 @@
     // ── i18n ─────────────────────────────────────────────────────────────
     const I18N = {
       pt: {
-        intro: "Aplicativo simplificado para agricultores da TrueSight DAO. Vincule seu email e registre o plantio de árvores em poucos passos.",
-        emailHeading: "1. Vincule seu email",
+        intro: "Aplicativo simplificado para agricultores da TrueSight DAO. Registre o plantio de árvores em poucos passos — vincular seu email é opcional.",
+        emailHeading: "Vincular email (opcional)",
         emailHint: "Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.",
         emailLabel: "Seu email",
         emailButton: "Vincular email",
-        treeHeading: "2. Registrar plantio de árvore",
-        treeHint: "Envie uma foto da árvore plantada. Funciona sem internet — cada registro fica salvo neste telefone e é enviado automaticamente quando houver conexão. Localização (se disponível) e data são registradas automaticamente.",
+        treeHeading: "Registrar plantio de árvore",
+        treeHint: "Tire uma foto da árvore plantada. Funciona sem internet — cada registro fica salvo neste telefone e é enviado automaticamente quando houver conexão. Localização (se disponível) e data são registradas automaticamente.",
         speciesLabel: "Espécie da árvore",
         speciesPlaceholder: "Cacau, Cacau-cabruca, ...",
         photoLabel: "Foto da árvore",
+        captureButton: "Tirar foto",
+        retakeButton: "Tirar outra",
+        cameraStarting: "Iniciando câmera...",
+        cameraUnsupported: "Câmera não disponível neste navegador.",
+        cameraError: "Erro ao acessar a câmera: ",
+        photoCaptured: "Foto capturada.",
         treeButton: "Enviar registro",
         requestHeading: "Pedido enviado (assinado)",
         responseHeading: "Resposta do servidor",
@@ -222,7 +285,7 @@
         emailVerified: "Email confirmado com sucesso!",
         emailError: "Erro: ",
         speciesRequired: "Por favor, informe a espécie da árvore.",
-        photoRequired: "Por favor, selecione uma foto.",
+        photoRequired: "Por favor, tire uma foto primeiro.",
         treeSending: "Salvando registro...",
         treeSent: "Registro enviado com sucesso!",
         treeSavedOffline: "Salvo neste telefone. Será enviado automaticamente quando houver internet.",
@@ -234,16 +297,22 @@
         pendingUploaded: "Registro(s) pendente(s) enviado(s) com sucesso!",
       },
       en: {
-        intro: "A simplified TrueSight DAO app for farmers. Link your email and report tree plantings in a few steps.",
-        emailHeading: "1. Link your email",
+        intro: "A simplified TrueSight DAO app for farmers. Report tree plantings in a few steps — linking your email is optional.",
+        emailHeading: "Link email (optional)",
         emailHint: "Your email identifies you to TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.",
         emailLabel: "Your email",
         emailButton: "Link email",
-        treeHeading: "2. Report a tree planting",
-        treeHint: "Upload a photo of the planted tree. Works without internet — each report is saved on this phone and sent automatically once there's a connection. Location (if available) and date are recorded automatically.",
+        treeHeading: "Report a tree planting",
+        treeHint: "Take a photo of the planted tree. Works without internet — each report is saved on this phone and sent automatically once there's a connection. Location (if available) and date are recorded automatically.",
         speciesLabel: "Tree species",
         speciesPlaceholder: "Cacao, Cabruca cacao, ...",
         photoLabel: "Tree photo",
+        captureButton: "Take photo",
+        retakeButton: "Retake",
+        cameraStarting: "Starting camera...",
+        cameraUnsupported: "Camera not available in this browser.",
+        cameraError: "Error accessing camera: ",
+        photoCaptured: "Photo captured.",
         treeButton: "Submit report",
         requestHeading: "Signed request sent",
         responseHeading: "Server response",
@@ -254,7 +323,7 @@
         emailVerified: "Email confirmed successfully!",
         emailError: "Error: ",
         speciesRequired: "Please enter the tree species.",
-        photoRequired: "Please select a photo.",
+        photoRequired: "Please take a photo first.",
         treeSending: "Saving report...",
         treeSent: "Report sent successfully!",
         treeSavedOffline: "Saved on this phone. It'll be sent automatically once there's internet.",
@@ -563,18 +632,98 @@
       await updatePendingBadge();
     }
 
+    // ── Live camera capture (mirrors dapp/report_tree_planting.html's
+    // getUserMedia + canvas approach) — a file picker would let a farmer
+    // attach an old/wrong photo from their gallery; requiring a live
+    // capture keeps every report tied to a photo actually taken at the
+    // reported moment/location, same intent as the geolocation capture.
+    let cameraStream = null;
+    let capturedPhotoBlob = null;
+
+    function isMobileDevice() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    async function startTreeCamera() {
+      const video = document.getElementById('treeCameraPreview');
+      const cameraStatus = document.getElementById('cameraStatus');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        cameraStatus.textContent = t('cameraUnsupported');
+        cameraStatus.className = 'error';
+        document.getElementById('captureBtn').disabled = true;
+        return;
+      }
+      cameraStatus.textContent = t('cameraStarting');
+      cameraStatus.className = '';
+      const constraints = {
+        video: isMobileDevice()
+          ? { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : true,
+      };
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = cameraStream;
+        video.style.display = 'block';
+        cameraStatus.textContent = '';
+      } catch (err) {
+        cameraStatus.textContent = t('cameraError') + err.message;
+        cameraStatus.className = 'error';
+        document.getElementById('captureBtn').disabled = true;
+      }
+    }
+
+    function capturePhoto() {
+      const video = document.getElementById('treeCameraPreview');
+      const canvas = document.getElementById('treeCaptureCanvas');
+      const preview = document.getElementById('treePhotoPreview');
+      const cameraStatus = document.getElementById('cameraStatus');
+      if (!cameraStream || !video.srcObject) {
+        cameraStatus.textContent = t('cameraUnsupported');
+        cameraStatus.className = 'error';
+        return;
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        capturedPhotoBlob = blob;
+        if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+        const url = URL.createObjectURL(blob);
+        preview.src = url;
+        preview.dataset.objectUrl = url;
+        preview.style.display = 'block';
+        video.style.display = 'none';
+        document.getElementById('captureBtn').style.display = 'none';
+        document.getElementById('retakeBtn').style.display = 'block';
+        cameraStatus.textContent = t('photoCaptured');
+        cameraStatus.className = 'success';
+      }, 'image/jpeg', 0.9);
+    }
+
+    function retakePhoto() {
+      capturedPhotoBlob = null;
+      const preview = document.getElementById('treePhotoPreview');
+      if (preview.dataset.objectUrl) {
+        URL.revokeObjectURL(preview.dataset.objectUrl);
+        delete preview.dataset.objectUrl;
+      }
+      preview.style.display = 'none';
+      document.getElementById('treeCameraPreview').style.display = 'block';
+      document.getElementById('captureBtn').style.display = 'block';
+      document.getElementById('retakeBtn').style.display = 'none';
+      document.getElementById('cameraStatus').textContent = '';
+    }
+
     async function submitTreePlanting() {
       const statusEl = document.getElementById('treeStatus');
       const species = document.getElementById('treeSpecies').value.trim();
-      const photoInput = document.getElementById('treePhoto');
-      const photoFile = photoInput.files && photoInput.files[0];
 
       if (!species) {
         statusEl.textContent = t('speciesRequired');
         statusEl.className = 'error';
         return;
       }
-      if (!photoFile) {
+      if (!capturedPhotoBlob) {
         statusEl.textContent = t('photoRequired');
         statusEl.className = 'error';
         return;
@@ -592,7 +741,7 @@
         const pad = (n) => n.toString().padStart(2, '0');
         const yyyymmddhhmmss = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
         const safePublicKey = publicKey.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
-        const ext = (photoFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const ext = 'jpg'; // canvas.toBlob(..., 'image/jpeg', ...) above
         const reportId = `${yyyymmddhhmmss}_${safePublicKey}`;
         const photoDestinationURL = `https://github.com/TrueSightDAO/sunmint/tree/main/images/${reportId}.${ext}`;
 
@@ -609,7 +758,7 @@
         await queueTreeReport({
           id: reportId,
           shareText,
-          photoBlob: photoFile,
+          photoBlob: capturedPhotoBlob,
           photoName: `tree_photo.${ext}`,
           createdAt: plantingTime,
           uploaded: false,
@@ -619,7 +768,7 @@
         // right away, independent of whether the upload below succeeds.
         const hadLocation = latitude != null;
         document.getElementById('treeSpecies').value = '';
-        photoInput.value = '';
+        retakePhoto(); // clears capturedPhotoBlob, shows the live viewfinder again
         statusEl.textContent = t('treeSavedOffline');
         statusEl.className = 'success';
         await updatePendingBadge();
@@ -646,6 +795,7 @@
     updatePendingBadge();
     flushTreeReportQueue(); // backfill anything queued from a previous offline session
     window.addEventListener('online', flushTreeReportQueue);
+    startTreeCamera(); // ask for camera permission up front so it's ready when needed
   </script>
 </body>
 </html>
