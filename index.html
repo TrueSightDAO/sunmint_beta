@@ -218,7 +218,13 @@
     <p class="hint" data-i18n="treeHint">Envie uma foto da árvore plantada. Localização (se disponível) e data são registradas automaticamente.</p>
 
     <label for="treeSpecies" data-i18n="speciesLabel">Espécie da árvore</label>
-    <input type="text" id="treeSpecies" placeholder="Cacau, Cacau-cabruca, ..." data-i18n-placeholder="speciesPlaceholder">
+    <select id="treeSpecies" onchange="onSpeciesChange()">
+      <option value="Cacao" data-i18n="speciesCacao" selected>Cacau</option>
+      <option value="Cacao (Native)" data-i18n="speciesCacaoNative">Cacau (Nativo)</option>
+      <option value="Cacao-cabruca" data-i18n="speciesCacaoCabruca">Cacau-cabruca</option>
+      <option value="Other" data-i18n="speciesOther">Outra (especifique)</option>
+    </select>
+    <input type="text" id="treeSpeciesOther" style="display:none; margin-top:0.5rem;" placeholder="Nome da espécie" data-i18n-placeholder="speciesOtherPlaceholder">
 
     <label data-i18n="photoLabel">Foto da árvore</label>
     <video id="treeCameraPreview" autoplay playsinline muted></video>
@@ -267,7 +273,12 @@
         treeHeading: "Registrar plantio de árvore",
         treeHint: "Tire uma foto da árvore plantada. Funciona sem internet — cada registro fica salvo neste telefone e é enviado automaticamente quando houver conexão. Localização (se disponível) e data são registradas automaticamente.",
         speciesLabel: "Espécie da árvore",
-        speciesPlaceholder: "Cacau, Cacau-cabruca, ...",
+        speciesCacao: "Cacau",
+        speciesCacaoNative: "Cacau (Nativo)",
+        speciesCacaoCabruca: "Cacau-cabruca",
+        speciesOther: "Outra (especifique)",
+        speciesOtherPlaceholder: "Nome da espécie",
+        speciesOtherRequired: "Por favor, informe o nome da espécie.",
         photoLabel: "Foto da árvore",
         captureButton: "Tirar foto",
         retakeButton: "Tirar outra",
@@ -284,7 +295,6 @@
         emailVerifying: "Confirmando seu email...",
         emailVerified: "Email confirmado com sucesso!",
         emailError: "Erro: ",
-        speciesRequired: "Por favor, informe a espécie da árvore.",
         photoRequired: "Por favor, tire uma foto primeiro.",
         treeSending: "Salvando registro...",
         treeSent: "Registro enviado com sucesso!",
@@ -305,7 +315,12 @@
         treeHeading: "Report a tree planting",
         treeHint: "Take a photo of the planted tree. Works without internet — each report is saved on this phone and sent automatically once there's a connection. Location (if available) and date are recorded automatically.",
         speciesLabel: "Tree species",
-        speciesPlaceholder: "Cacao, Cabruca cacao, ...",
+        speciesCacao: "Cacao",
+        speciesCacaoNative: "Cacao (Native)",
+        speciesCacaoCabruca: "Cabruca cacao",
+        speciesOther: "Other (specify)",
+        speciesOtherPlaceholder: "Species name",
+        speciesOtherRequired: "Please enter the species name.",
         photoLabel: "Tree photo",
         captureButton: "Take photo",
         retakeButton: "Retake",
@@ -322,7 +337,6 @@
         emailVerifying: "Confirming your email...",
         emailVerified: "Email confirmed successfully!",
         emailError: "Error: ",
-        speciesRequired: "Please enter the tree species.",
         photoRequired: "Please take a photo first.",
         treeSending: "Saving report...",
         treeSent: "Report sent successfully!",
@@ -714,12 +728,31 @@
       document.getElementById('cameraStatus').textContent = '';
     }
 
+    // "Other" reveals a free-text field; every other option is a canonical
+    // value (matches real historical [TREE PLANTING EVENT] submissions —
+    // "Cacao" / "Cacao (Native)" — so downstream processing stays consistent
+    // regardless of which language the picker is shown in).
+    function onSpeciesChange() {
+      const select = document.getElementById('treeSpecies');
+      const other = document.getElementById('treeSpeciesOther');
+      other.style.display = select.value === 'Other' ? 'block' : 'none';
+    }
+
+    function getSelectedSpecies() {
+      const select = document.getElementById('treeSpecies');
+      if (select.value === 'Other') {
+        return document.getElementById('treeSpeciesOther').value.trim();
+      }
+      return select.value;
+    }
+
     async function submitTreePlanting() {
       const statusEl = document.getElementById('treeStatus');
-      const species = document.getElementById('treeSpecies').value.trim();
+      const speciesSelect = document.getElementById('treeSpecies');
+      const species = getSelectedSpecies();
 
-      if (!species) {
-        statusEl.textContent = t('speciesRequired');
+      if (speciesSelect.value === 'Other' && !species) {
+        statusEl.textContent = t('speciesOtherRequired');
         statusEl.className = 'error';
         return;
       }
@@ -767,7 +800,9 @@
         // Reset the form immediately — the farmer can capture the next tree
         // right away, independent of whether the upload below succeeds.
         const hadLocation = latitude != null;
-        document.getElementById('treeSpecies').value = '';
+        speciesSelect.value = 'Cacao'; // back to the common-case default
+        document.getElementById('treeSpeciesOther').value = '';
+        onSpeciesChange(); // hides the "other" field again since it's back to Cacao
         retakePhoto(); // clears capturedPhotoBlob, shows the live viewfinder again
         statusEl.textContent = t('treeSavedOffline');
         statusEl.className = 'success';
