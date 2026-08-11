@@ -219,9 +219,9 @@
 
     <label for="treeSpecies" data-i18n="speciesLabel">Espécie da árvore</label>
     <select id="treeSpecies" onchange="onSpeciesChange()">
-      <option value="Cacao" data-i18n="speciesCacao" selected>Cacau</option>
-      <option value="Cacao (Native)" data-i18n="speciesCacaoNative">Cacau (Nativo)</option>
-      <option value="Cacao-cabruca" data-i18n="speciesCacaoCabruca">Cacau-cabruca</option>
+      <option value="Cacao - Criolla" data-i18n="speciesCriolla" selected>Cacau - Criolla</option>
+      <option value="Cacao - Trinitario" data-i18n="speciesTrinitario">Cacau - Trinitario</option>
+      <option value="Cacao - Forestero" data-i18n="speciesForestero">Cacau - Forestero</option>
       <option value="Other" data-i18n="speciesOther">Outra (especifique)</option>
     </select>
     <input type="text" id="treeSpeciesOther" style="display:none; margin-top:0.5rem;" placeholder="Nome da espécie" data-i18n-placeholder="speciesOtherPlaceholder">
@@ -273,9 +273,9 @@
         treeHeading: "Registrar plantio de árvore",
         treeHint: "Tire uma foto da árvore plantada. Funciona sem internet — cada registro fica salvo neste telefone e é enviado automaticamente quando houver conexão. Localização (se disponível) e data são registradas automaticamente.",
         speciesLabel: "Espécie da árvore",
-        speciesCacao: "Cacau",
-        speciesCacaoNative: "Cacau (Nativo)",
-        speciesCacaoCabruca: "Cacau-cabruca",
+        speciesCriolla: "Cacau - Criolla",
+        speciesTrinitario: "Cacau - Trinitario",
+        speciesForestero: "Cacau - Forestero",
         speciesOther: "Outra (especifique)",
         speciesOtherPlaceholder: "Nome da espécie",
         speciesOtherRequired: "Por favor, informe o nome da espécie.",
@@ -315,9 +315,9 @@
         treeHeading: "Report a tree planting",
         treeHint: "Take a photo of the planted tree. Works without internet — each report is saved on this phone and sent automatically once there's a connection. Location (if available) and date are recorded automatically.",
         speciesLabel: "Tree species",
-        speciesCacao: "Cacao",
-        speciesCacaoNative: "Cacao (Native)",
-        speciesCacaoCabruca: "Cabruca cacao",
+        speciesCriolla: "Cacao - Criolla",
+        speciesTrinitario: "Cacao - Trinitario",
+        speciesForestero: "Cacao - Forestero",
         speciesOther: "Other (specify)",
         speciesOtherPlaceholder: "Species name",
         speciesOtherRequired: "Please enter the species name.",
@@ -800,7 +800,7 @@
         // Reset the form immediately — the farmer can capture the next tree
         // right away, independent of whether the upload below succeeds.
         const hadLocation = latitude != null;
-        speciesSelect.value = 'Cacao'; // back to the common-case default
+        speciesSelect.value = 'Cacao - Criolla'; // back to the default (first option)
         document.getElementById('treeSpeciesOther').value = '';
         onSpeciesChange(); // hides the "other" field again since it's back to Cacao
         retakePhoto(); // clears capturedPhotoBlob, shows the live viewfinder again
