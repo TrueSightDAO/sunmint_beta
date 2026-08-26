@@ -265,7 +265,9 @@
     const EDGAR_BASE = 'https://edgar.truesight.me';
     const EDGAR_SUBMIT_URL = `${EDGAR_BASE}/dao/submit_contribution`;
     const TREE_INDEX_URLS = [
+      'trees/index.geojson',
       'https://sunmint.truesight.me/trees/index.geojson',
+      'https://beta.sunmint.truesight.me/trees/index.geojson',
       'https://truesight.me/sunmint/trees/index.geojson'
     ];
 
@@ -388,7 +390,7 @@
         manual.style.display = 'block';
         return;
       }
-      const sorted = trees.slice().sort((a, b) => (a._dist || 0) - (b._dist || 0));
+      const sorted = trees.slice().sort((a, b) => (a._dist ?? Infinity) - (b._dist ?? Infinity));
       let html = '<option value="">' + t('selectTree') + '</option>';
       sorted.forEach(tree => {
         const distText = (tree._dist !== undefined && tree._dist !== null)
