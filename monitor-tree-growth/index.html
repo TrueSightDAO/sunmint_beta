@@ -83,6 +83,36 @@
     .tree-detail-photo { max-width: 100%; max-height: 220px; border-radius: 6px; margin-bottom: 0.5rem; object-fit: cover; }
     .tree-detail-meta div { margin: 0.15rem 0; font-size: 0.9rem; }
     .nav-dropdown select { max-width: 300px; display: inline-block; }
+    .lang-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .lang-toggle button {
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .lang-toggle button.active {
+      background-color: #2e7d32;
+      color: white;
+      border-color: #2e7d32;
+    }
+    .download-btn {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      background-color: #1b5e20;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1rem;
+    }
     .pending-badge {
       display: inline-block; background: #e65100; color: white; border-radius: 12px;
       padding: 0.15rem 0.6rem; font-size: 0.8rem; margin-left: 0.4rem;
@@ -91,7 +121,15 @@
   </style>
 </head>
 <body>
-  <h1 data-i18n="title">Monitorar Árvore</h1>
+  <div class="lang-toggle">
+    <button id="langPt" class="active" onclick="setLang('pt')">Português</button>
+    <button id="langEn" onclick="setLang('en')">English</button>
+  </div>
+
+  <div class="container" style="text-align:center;">
+    <img height="120px" src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo"/>
+    <h1 data-i18n="title">Monitorar Árvore</h1>
+  </div>
   <p class="intro" data-i18n="intro">Meça sua árvore com o cartão de calibração e registre o crescimento. A análise estima o carbono (método PM002).</p>
 
   <!-- Nav dropdown: Plant Tree / Monitor Tree -->
@@ -187,6 +225,9 @@
         emailHint: 'Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.',
         emailLabel: 'Seu email',
         emailButton: 'Vincular email',
+        downloadHeading: 'Baixe o aplicativo Android',
+        downloadHint: 'Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.',
+        downloadButton: 'Baixar APK (Android)',
         requestHeading: 'Pedido enviado (assinado)',
         responseHeading: 'Resposta do servidor',
         emailRequired: 'Informe seu email.',
@@ -239,6 +280,9 @@
         emailHint: 'Your email identifies you in the TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.',
         emailLabel: 'Your email',
         emailButton: 'Link email',
+        downloadHeading: 'Download the Android app',
+        downloadHint: 'Prefer the native app? Works offline and stores records on your phone.',
+        downloadButton: 'Download APK (Android)',
         requestHeading: 'Request sent (signed)',
         responseHeading: 'Server response',
         emailRequired: 'Enter your email.',
@@ -277,6 +321,9 @@
     function setLang(lang) {
       currentLang = lang;
       localStorage.setItem('sunmint_lang', lang);
+      document.documentElement.lang = lang;
+      document.getElementById('langPt').classList.toggle('active', lang === 'pt');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
       document.querySelectorAll('[data-i18n]').forEach((el) => {
         el.textContent = t(el.getAttribute('data-i18n'));
       });
@@ -758,5 +805,12 @@
       statusEl.textContent = '';
     };
   </script>
+
+  <!-- Android app download (footer CTA) -->
+  <div class="container optional-section" style="text-align:center;">
+    <h3 data-i18n="downloadHeading">Baixe o aplicativo Android</h3>
+    <p class="hint" data-i18n="downloadHint">Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.</p>
+    <a class="download-btn" href="https://github.com/TrueSightDAO/sunmint_mobile/releases/download/v0.1.0-android-uat/sunmint-android-uat.apk" data-i18n="downloadButton">Baixar APK (Android)</a>
+  </div>
 </body>
 </html>
