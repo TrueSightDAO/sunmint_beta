@@ -80,6 +80,19 @@
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
+    .nav-dropdown {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .nav-dropdown select {
+      max-width: 300px;
+      display: inline-block;
+    }
+    .nav-dropdown label {
+      font-weight: bold;
+      margin-right: 0.4rem;
+      display: inline;
+    }
     .lang-toggle button {
       background: none;
       border: 1px solid #ccc;
@@ -220,6 +233,14 @@
     <button id="langEn" onclick="setLang('en')">English</button>
   </div>
 
+  <div class="nav-dropdown">
+    <label for="pageNav" data-i18n="navLabel">Página:</label>
+    <select id="pageNav" onchange="onNavChange()">
+      <option value="plant" data-i18n="navPlant" selected>Registrar Plantio</option>
+      <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
+    </select>
+  </div>
+
   <div class="container" style="text-align:center;">
     <img height="120px" src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo"/>
     <h1>Sunmint</h1>
@@ -290,6 +311,9 @@
     const I18N = {
       pt: {
         intro: "Aplicativo simplificado para agricultores da TrueSight DAO. Registre o plantio de árvores em poucos passos — vincular seu email é opcional.",
+        navLabel: "Página:",
+        navPlant: "Registrar Plantio",
+        navMonitor: "Monitorar Árvore",
         downloadHeading: "Baixe o aplicativo Android",
         downloadHint: "Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.",
         downloadButton: "Baixar APK (Android)",
@@ -335,6 +359,9 @@
       },
       en: {
         intro: "A simplified TrueSight DAO app for farmers. Report tree plantings in a few steps — linking your email is optional.",
+        navLabel: "Page:",
+        navPlant: "Plant Tree",
+        navMonitor: "Monitor Tree",
         downloadHeading: "Download the Android app",
         downloadHint: "Prefer the native app? It works offline and saves your reports on your phone.",
         downloadButton: "Download APK (Android)",
@@ -854,6 +881,16 @@
     }
 
     // ── init ─────────────────────────────────────────────────────────────
+    // ── nav dropdown ────────────────────────────────────────────────
+    function onNavChange() {
+      const select = document.getElementById('pageNav');
+      if (select.value === 'monitor') {
+        window.location.href = '/monitor-tree-growth/';
+      } else {
+        window.location.href = '/';
+      }
+    }
+
     setLang(currentLang);
     requestLocation();
     checkVerificationLink();
