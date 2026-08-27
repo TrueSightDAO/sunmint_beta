@@ -70,6 +70,14 @@
       width: 100%; max-width: 100%; border-radius: 6px; margin-top: 0.5rem;
       background: #000; min-height: 160px; object-fit: contain;
     }
+    .photo-tabs { display: flex; gap: 0.5rem; margin: 0.8rem 0 0.5rem; }
+    .photo-tab { flex: 1; padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px 6px 0 0;
+      background: #f1f1f1; cursor: pointer; text-align: center; font-weight: bold; font-size: 0.9rem; }
+    .photo-tab.active { background: #2e7d32; color: white; border-color: #2e7d32; }
+    .photo-tab.done::after { content: ' ✓'; }
+    .photo-panel { border: 1px solid #ccc; border-top: none; border-radius: 0 0 6px 6px; padding: 0.8rem; }
+    .photo-panel[hidden] { display: none; }
+    .camera-viewport { width: 100%; border-radius: 6px; background: #000; min-height: 180px; margin-top: 0.5rem; }
     .status { margin-top: 0.6rem; font-size: 0.9rem; color: #1b5e20; }
     .status.error { color: #b71c1c; }
     .status.success { color: #1b5e20; }
@@ -166,15 +174,24 @@
     <p class="hint" data-i18n="dbhHint">Segure o cartão de calibração contra o tronco, dentro do quadro.</p>
     <input type="number" id="dbhInput" step="0.1" min="0.5" placeholder="ex: 12.5">
 
-    <label data-i18n="closeupLabel">Foto de perto (cartão + tronco)</label>
-    <button type="button" class="camera-btn" id="closeupBtn" onclick="captureCloseup()" data-i18n="closeupButton">Tirar foto de perto</button>
-    <button type="button" class="camera-btn secondary" id="closeupRetakeBtn" onclick="retakeCloseup()" style="display:none;" data-i18n="retakeButton">Tirar outra</button>
-    <img id="closeupPreview" class="photo-preview" style="display:none;">
-
-    <label data-i18n="contextLabel">Foto de contexto (árvore inteira)</label>
-    <button type="button" class="camera-btn" id="contextBtn" onclick="captureContext()" data-i18n="contextButton">Tirar foto de contexto</button>
-    <button type="button" class="camera-btn secondary" id="contextRetakeBtn" onclick="retakeContext()" style="display:none;" data-i18n="retakeButton2">Tirar outra</button>
-    <img id="contextPreview" class="photo-preview" style="display:none;">
+    <div class="photo-tabs" role="tablist">
+      <button type="button" class="photo-tab active" id="tab-closeup" onclick="switchTab('closeup')" data-i18n="closeupTab">Foto de perto</button>
+      <button type="button" class="photo-tab" id="tab-context" onclick="switchTab('context')" data-i18n="contextTab">Contexto</button>
+    </div>
+    <div class="photo-panel" id="panel-closeup">
+      <p class="hint" data-i18n="closeupHint">Segure o cartão de calibração contra o tronco, enquadre e tire a foto.</p>
+      <video id="closeupVideo" class="camera-viewport" autoplay playsinline muted style="display:none;"></video>
+      <img id="closeupPreview" class="photo-preview" style="display:none;">
+      <button type="button" class="camera-btn" id="closeupBtn" onclick="capturePhoto('closeup')" data-i18n="closeupButton">Tirar foto</button>
+      <button type="button" class="camera-btn secondary" id="closeupRetakeBtn" onclick="retakeCloseup()" style="display:none;" data-i18n="retakeButton">Tirar outra</button>
+    </div>
+    <div class="photo-panel" id="panel-context" hidden>
+      <p class="hint" data-i18n="contextHint">Enquadre a árvore inteira e tire a foto de contexto.</p>
+      <video id="contextVideo" class="camera-viewport" autoplay playsinline muted style="display:none;"></video>
+      <img id="contextPreview" class="photo-preview" style="display:none;">
+      <button type="button" class="camera-btn" id="contextBtn" onclick="capturePhoto('context')" data-i18n="contextButton">Tirar foto</button>
+      <button type="button" class="camera-btn secondary" id="contextRetakeBtn" onclick="retakeContext()" style="display:none;" data-i18n="retakeButton2">Tirar outra</button>
+    </div>
 
     <button class="submit-btn" id="monitorSubmitBtn" onclick="submitMonitoring()" data-i18n="monitorButton">Enviar medição</button>
     <div id="treeStatus" aria-live="polite"></div>
@@ -214,6 +231,10 @@
         treeIdManualPlaceholder: 'Tree ID manual (ex: FOUNDERHAUS_BOUGAINVILLEA_20260821_1)',
         dbhLabel: 'DAP (cm) — diâmetro à altura do peito (1,3 m)',
         dbhHint: 'Segure o cartão de calibração contra o tronco, dentro do quadro.',
+        closeupTab: 'Foto de perto',
+        contextTab: 'Contexto',
+        closeupHint: 'Segure o cartão de calibração contra o tronco, enquadre e tire a foto.',
+        contextHint: 'Enquadre a árvore inteira e tire a foto de contexto.',
         closeupLabel: 'Foto de perto (cartão + tronco)',
         closeupButton: 'Tirar foto de perto',
         retakeButton: 'Tirar outra',
@@ -269,6 +290,10 @@
         treeIdManualPlaceholder: 'Manual Tree ID (e.g. FOUNDERHAUS_BOUGAINVILLEA_20260821_1)',
         dbhLabel: 'DBH (cm) — diameter at breast height (1.3 m)',
         dbhHint: 'Hold the calibration card against the trunk, in frame.',
+        closeupTab: 'Close-up',
+        contextTab: 'Context',
+        closeupHint: 'Hold the calibration card against the trunk, frame it, and take the photo.',
+        contextHint: 'Frame the whole tree and take the context photo.',
         closeupLabel: 'Close-up photo (card + trunk)',
         closeupButton: 'Take close-up photo',
         retakeButton: 'Retake',
@@ -520,7 +545,7 @@
     function startCamera(mode) {
       activeCaptureMode = mode;
       const video = document.createElement('video');
-      video.id = 'cameraPreview';
+      video.id = mode + 'Video';
       video.autoplay = true;
       video.playsInline = true;
       video.style.width = '100%';
@@ -549,11 +574,13 @@
         mediaStream.getTracks().forEach(track => track.stop());
         mediaStream = null;
       }
-      const video = document.getElementById('cameraPreview');
-      if (video) video.srcObject = null;
+      ['closeup','context'].forEach(m => {
+        const v = document.getElementById(m + 'Video');
+        if (v) v.srcObject = null;
+      });
     }
     function capturePhoto(mode) {
-      const video = document.getElementById('cameraPreview');
+      const video = document.getElementById(mode + 'Video');
       if (!video || !video.srcObject) { startCamera(mode); return; }
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth || 1280;
@@ -576,6 +603,7 @@
         stopCamera();
         const wrap = document.getElementById(mode + 'VideoWrap');
         if (wrap) wrap.remove();
+        markTabDone(mode);
         if (mode === 'closeup' && !contextBlob) {
           const statusEl = document.getElementById('treeStatus');
           statusEl.textContent = t('contextRecommended');
@@ -583,13 +611,34 @@
         }
       }, 'image/jpeg', 0.85);
     }
-    function captureCloseup() { capturePhoto('closeup'); }
-    function captureContext() { capturePhoto('context'); }
+    function switchTab(mode) {
+      // stop any running camera
+      stopCamera();
+      const other = mode === 'closeup' ? 'context' : 'closeup';
+      document.getElementById('panel-' + mode).hidden = false;
+      document.getElementById('panel-' + other).hidden = true;
+      document.getElementById('tab-' + mode).classList.add('active');
+      document.getElementById('tab-' + other).classList.remove('active');
+      // auto-start camera if this tab's photo isn't captured yet
+      const blob = mode === 'closeup' ? closeupBlob : contextBlob;
+      if (!blob) {
+        startCamera(mode);
+      } else {
+        // show the captured preview
+        document.getElementById(mode + 'Preview').style.display = 'block';
+        document.getElementById(mode + 'Btn').style.display = 'none';
+        document.getElementById(mode + 'RetakeBtn').style.display = 'inline-block';
+      }
+    }
+    function markTabDone(mode) {
+      document.getElementById('tab-' + mode).classList.add('done');
+    }
     function retakeCloseup() {
       closeupBlob = null;
       document.getElementById('closeupPreview').style.display = 'none';
       document.getElementById('closeupBtn').style.display = 'inline-block';
       document.getElementById('closeupRetakeBtn').style.display = 'none';
+      document.getElementById('tab-closeup').classList.remove('done');
       startCamera('closeup');
     }
     function retakeContext() {
@@ -597,6 +646,7 @@
       document.getElementById('contextPreview').style.display = 'none';
       document.getElementById('contextBtn').style.display = 'inline-block';
       document.getElementById('contextRetakeBtn').style.display = 'none';
+      document.getElementById('tab-context').classList.remove('done');
       startCamera('context');
     }
 
