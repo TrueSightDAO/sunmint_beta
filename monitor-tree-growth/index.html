@@ -793,7 +793,25 @@
 
 
     // ----- governor gate (mirror of the GAS 'Governors' tab; keep in sync) -----
-    const GOVERNORS = ['Gary Teh','Jacob Nelan','Elizabeth Wong','Kirsten Ritschel','Shena Davenport','AGL15','Fatima Toledo','Kaon Krasniqi','Andreas Quandt','Claude'];
+    let GOVERNORS = ['Gary Teh','Jacob Nelan','Elizabeth Wong','Kirsten Ritschel','Shena Davenport','AGL15','Fatima Toledo','Kaon Krasniqi','Andreas Quandt','Claude'];
+    const GOVERNORS_FALLBACK = GOVERNORS.slice();
+    const GOVERNORS_URL = 'https://raw.githubusercontent.com/TrueSightDAO/lineage-credentials/main/_cache/index.json';
+    async function loadGovernors() {
+      try {
+        const res = await fetch(GOVERNORS_URL, { cache: 'no-store' });
+        if (!res.ok) throw new Error('gov fetch ' + res.status);
+        const data = await res.json();
+        const names = (data.members || [])
+          .filter(m => m.is_governor === true)
+          .map(m => m.display_name)
+          .filter(Boolean);
+        if (names.length) { GOVERNORS = names; }
+        console.log('[gov] loaded', GOVERNORS.length, 'governors from lineage cache');
+      } catch (err) {
+        console.warn('[gov] fetch failed, using fallback list:', err);
+        GOVERNORS = GOVERNORS_FALLBACK.slice();
+      }
+    }
     let currentContributorName = null;
     async function loadContributorIdentity() {
       const pk = localStorage.getItem('publicKey');
@@ -923,6 +941,7 @@
 
       await ensureKeyPair().catch(() => {});
       await checkSignatureRegistration(localStorage.getItem('publicKey') || '');
+      loadGovernors();
 
       requestLocation();
       checkVerificationLink();
