@@ -166,6 +166,7 @@
         <div><strong data-i18n="detailPlanted">Plantado em:</strong> <span id="treeDetailPlanted">—</span></div>
         <div><strong data-i18n="detailStatus">Status:</strong> <span id="treeDetailStatus">—</span></div>
         <div><strong data-i18n="detailQr">QR Code:</strong> <span id="treeDetailQr">—</span></div>
+        <div><strong data-i18n="detailMeasure">Measurement:</strong> <span id="treeDetailMeasure">—</span></div>
         <div id="treeDetailNoPhoto" class="hint" data-i18n="detailNoPhoto" style="display:none;">Sem foto disponível para esta árvore.
       <div id="invalidZone" style="display:none; margin-top:0.6rem;">
         <button type="button" id="markInvalidBtn" onclick="markTreeInvalid()" style="background:#b23b3b;color:#fff;border:none;border-radius:6px;padding:0.5rem 0.9rem;font-size:0.9rem;">MARK INVALID</button>
@@ -278,6 +279,12 @@
         detailSpecies: 'Espécie:',
         detailPlanted: 'Plantado em:',
         detailStatus: 'Status:',
+        detailMeasure: 'Medição:',
+        msOk: 'Em dia',
+        msDue: 'Próximo do vencimento',
+        msOverdue: 'Atrasada',
+        msNever: 'Nunca medida',
+        msDueOn: 'vence em',
         detailQr: 'QR Code:',
         detailNoPhoto: 'Sem foto disponível para esta árvore.',
         tooFar: 'Você parece estar a {dist} desta árvore — as medições devem ser feitas no local (200 m).',
@@ -345,6 +352,12 @@
         detailSpecies: 'Species:',
         detailPlanted: 'Planted on:',
         detailStatus: 'Status:',
+        detailMeasure: 'Measurement:',
+        msOk: 'Up to date',
+        msDue: 'Due soon',
+        msOverdue: 'Overdue',
+        msNever: 'Never measured',
+        msDueOn: 'due',
         detailQr: 'QR Code:',
         detailNoPhoto: 'No photo available for this tree.',
         tooFar: 'You appear to be {dist} from this tree — measurements must be taken on-site (200 m).',
@@ -478,6 +491,35 @@
         Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
+    // Measurement cadence: annual minimum (matches Verra/GS/ACR/CAR), 6-monthly
+    // recommended for young trees. Status computed from last_measured (falls back
+    // to planted_at as the baseline first-measurement).
+    const MS_OK_DAYS = 274;    // < 9 months: green
+    const MS_DUE_DAYS = 365;   // 9-12 months: amber; > 12 months: red
+    function measureStatus(tree) {
+      const raw = tree.lastMeasured || tree.plantedAt || null;
+      if (!raw) return { key: 'never', emoji: '\u26aa', label: t('msNever') };
+      const dd = new Date(raw);
+      if (isNaN(dd.getTime())) return { key: 'never', emoji: '\u26aa', label: t('msNever') };
+      const ageDays = (Date.now() - dd.getTime()) / 86400000;
+      if (ageDays > MS_DUE_DAYS) return { key: 'overdue', emoji: '\ud83d\udf34', label: t('msOverdue') };
+      if (ageDays > MS_OK_DAYS) return { key: 'due', emoji: '\ud83d\udfe0', label: t('msDue') };
+      return { key: 'ok', emoji: '\ud83d\udfe2', label: t('msOk') };
+    }
+    function measureDueDate(tree) {
+      const raw = tree.lastMeasured || tree.plantedAt || null;
+      if (!raw) return null;
+      const dd = new Date(raw);
+      if (isNaN(dd.getTime())) return null;
+      return new Date(dd.getTime() + MS_DUE_DAYS * 86400000);
+    }
+    function setTreeParam(treeId) {
+      try {
+        const url = new URL(window.location.href);
+        if (treeId) url.searchParams.set('tree', treeId); else url.searchParams.delete('tree');
+        history.replaceState(null, '', url.toString());
+      } catch (_) { /* non-critical */ }
+    }
     async function loadTreeIndex() {
       for (const url of TREE_INDEX_URLS) {
         try {
@@ -519,7 +561,8 @@
               ? (tree._dist / 1000).toFixed(1).replace('.', ',') + ' km'
               : Math.round(tree._dist) + ' m')
           : '';
-        html += `<option value="${tree.id}">${tree.id}${distText}</option>`;
+        const ms = measureStatus(tree);
+        html += `<option value="${tree.id}">${ms.emoji} ${tree.id}${distText}</option>`;
       });
       select.innerHTML = html;
     }
@@ -530,9 +573,11 @@
       if (select.value === '') {
         manual.style.display = 'block';
         panel.style.display = 'none';
+        setTreeParam('');
       } else {
         manual.style.display = 'none';
         renderTreeDetail(select.value);
+        setTreeParam(select.value);
       }
     }
     function renderTreeDetail(treeId) {
@@ -549,6 +594,11 @@
       plantedEl.textContent = tree.lastMeasured ? new Date(tree.lastMeasured).toLocaleString() : '—';
       statusEl.textContent = tree.status || '—';
       qrEl.textContent = tree.qrCode || '—';
+      const ms = measureStatus(tree);
+      const due = measureDueDate(tree);
+      const dueText = due ? ' · ' + t('msDueOn') + ' ' + due.toLocaleDateString() : '';
+      const measEl = document.getElementById('treeDetailMeasure');
+      if (measEl) measEl.textContent = ms.emoji + ' ' + ms.label + dueText;
       if (tree.photo) {
         photoImg.src = tree.photo;
         photoImg.style.display = 'block';
@@ -793,25 +843,7 @@
 
 
     // ----- governor gate (mirror of the GAS 'Governors' tab; keep in sync) -----
-    let GOVERNORS = ['Gary Teh','Jacob Nelan','Elizabeth Wong','Kirsten Ritschel','Shena Davenport','AGL15','Fatima Toledo','Kaon Krasniqi','Andreas Quandt','Claude'];
-    const GOVERNORS_FALLBACK = GOVERNORS.slice();
-    const GOVERNORS_URL = 'https://raw.githubusercontent.com/TrueSightDAO/lineage-credentials/main/_cache/index.json';
-    async function loadGovernors() {
-      try {
-        const res = await fetch(GOVERNORS_URL, { cache: 'no-store' });
-        if (!res.ok) throw new Error('gov fetch ' + res.status);
-        const data = await res.json();
-        const names = (data.members || [])
-          .filter(m => m.is_governor === true)
-          .map(m => m.display_name)
-          .filter(Boolean);
-        if (names.length) { GOVERNORS = names; }
-        console.log('[gov] loaded', GOVERNORS.length, 'governors from lineage cache');
-      } catch (err) {
-        console.warn('[gov] fetch failed, using fallback list:', err);
-        GOVERNORS = GOVERNORS_FALLBACK.slice();
-      }
-    }
+    const GOVERNORS = ['Gary Teh','Jacob Nelan','Elizabeth Wong','Kirsten Ritschel','Shena Davenport','AGL15','Fatima Toledo','Kaon Krasniqi','Andreas Quandt','Claude'];
     let currentContributorName = null;
     async function loadContributorIdentity() {
       const pk = localStorage.getItem('publicKey');
@@ -941,7 +973,6 @@
 
       await ensureKeyPair().catch(() => {});
       await checkSignatureRegistration(localStorage.getItem('publicKey') || '');
-      loadGovernors();
 
       requestLocation();
       checkVerificationLink();
@@ -961,6 +992,24 @@
         document.getElementById('treeIdManual').style.display = 'block';
       }
       document.getElementById('treeSelect').addEventListener('change', onTreeSelectChange);
+      document.getElementById('treeIdManual').addEventListener('input', function () {
+        setTreeParam(this.value.trim());
+      });
+      // Deep link: restore selected tree from ?tree=<id>
+      const urlTree = new URLSearchParams(window.location.search).get('tree');
+      if (urlTree && treeIndex) {
+        const match = treeIndex.find(t => t.id === urlTree || t.qrCode === urlTree);
+        const select = document.getElementById('treeSelect');
+        if (match && select.querySelector('option[value="' + CSS.escape(match.id) + '"]')) {
+          select.value = match.id;
+          onTreeSelectChange();
+        } else {
+          document.getElementById('treeIdManual').value = urlTree;
+          document.getElementById('treeIdManual').style.display = 'block';
+          document.getElementById('treeDetailPanel').style.display = 'none';
+          setTreeParam(urlTree);
+        }
+      }
       statusEl.textContent = '';
     };
   </script>
