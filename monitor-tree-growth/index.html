@@ -461,7 +461,8 @@
     async function loadTreeIndex() {
       for (const url of TREE_INDEX_URLS) {
         try {
-          const resp = await fetch(url, { cache: 'no-store' });
+          const sep = url.includes('?') ? '&' : '?';
+          const resp = await fetch(url + sep + 'cb=' + Date.now(), { cache: 'no-store' });
           if (!resp.ok) continue;
           const geojson = await resp.json();
           return (geojson.features || []).map(f => {
@@ -502,13 +503,6 @@
       });
       select.innerHTML = html;
     }
-    function setTreeParam(treeId) {
-      try {
-        const url = new URL(window.location.href);
-        if (treeId) url.searchParams.set('tree', treeId); else url.searchParams.delete('tree');
-        history.replaceState(null, '', url.toString());
-      } catch (_) { /* non-critical */ }
-    }
     function onTreeSelectChange() {
       const select = document.getElementById('treeSelect');
       const manual = document.getElementById('treeIdManual');
@@ -516,11 +510,9 @@
       if (select.value === '') {
         manual.style.display = 'block';
         panel.style.display = 'none';
-        setTreeParam('');
       } else {
         manual.style.display = 'none';
         renderTreeDetail(select.value);
-        setTreeParam(select.value);
       }
     }
     function renderTreeDetail(treeId) {
@@ -864,24 +856,6 @@
         document.getElementById('treeIdManual').style.display = 'block';
       }
       document.getElementById('treeSelect').addEventListener('change', onTreeSelectChange);
-      document.getElementById('treeIdManual').addEventListener('input', function () {
-        setTreeParam(this.value.trim());
-      });
-      // Deep link: restore selected tree from ?tree=<id>
-      const urlTree = new URLSearchParams(window.location.search).get('tree');
-      if (urlTree && treeIndex) {
-        const match = treeIndex.find(t => t.id === urlTree || t.qrCode === urlTree);
-        const select = document.getElementById('treeSelect');
-        if (match && select.querySelector('option[value="' + CSS.escape(match.id) + '"]')) {
-          select.value = match.id;
-          onTreeSelectChange();
-        } else {
-          document.getElementById('treeIdManual').value = urlTree;
-          document.getElementById('treeIdManual').style.display = 'block';
-          document.getElementById('treeDetailPanel').style.display = 'none';
-          setTreeParam(urlTree);
-        }
-      }
       statusEl.textContent = '';
     };
   </script>
