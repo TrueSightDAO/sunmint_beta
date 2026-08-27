@@ -470,7 +470,7 @@
       sorted.forEach(tree => {
         const distText = (tree._dist !== undefined && tree._dist !== null)
           ? ' — ' + (tree._dist >= 1000
-              ? (tree._dist / 1000).toFixed(1) + ' km'
+              ? (tree._dist / 1000).toFixed(1).replace('.', ',') + ' km'
               : Math.round(tree._dist) + ' m')
           : '';
         html += `<option value="${tree.id}">${tree.id}${distText}</option>`;
