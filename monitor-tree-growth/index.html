@@ -166,7 +166,11 @@
         <div><strong data-i18n="detailPlanted">Plantado em:</strong> <span id="treeDetailPlanted">—</span></div>
         <div><strong data-i18n="detailStatus">Status:</strong> <span id="treeDetailStatus">—</span></div>
         <div><strong data-i18n="detailQr">QR Code:</strong> <span id="treeDetailQr">—</span></div>
-        <div id="treeDetailNoPhoto" class="hint" data-i18n="detailNoPhoto" style="display:none;">Sem foto disponível para esta árvore.</div>
+        <div id="treeDetailNoPhoto" class="hint" data-i18n="detailNoPhoto" style="display:none;">Sem foto disponível para esta árvore.
+      <div id="invalidZone" style="display:none; margin-top:0.6rem;">
+        <button type="button" id="markInvalidBtn" onclick="markTreeInvalid()" style="background:#b23b3b;color:#fff;border:none;border-radius:6px;padding:0.5rem 0.9rem;font-size:0.9rem;">MARK INVALID</button>
+        <p id="invalidNote" style="color:#b23b3b;font-size:0.85rem;display:none;"></p>
+      </div></div>
       </div>
     </div>
 
@@ -275,7 +279,15 @@
         detailPlanted: 'Plantado em:',
         detailStatus: 'Status:',
         detailQr: 'QR Code:',
-        detailNoPhoto: 'Sem foto disponível para esta árvore.'
+        detailNoPhoto: 'Sem foto disponível para esta árvore.',
+        tooFar: 'Você parece estar a {dist} desta árvore — as medições devem ser feitas no local (200 m).',
+        markInvalid: 'Marcar árvore como inválida',
+        markInvalidConfirm: 'Confirmar que esta submissão não é uma árvore válida? (Somente governadores)',
+        invalidReason: 'Não é uma árvore válida',
+        invalidSent: 'Marcação de invalidação enviada (Reject Event)',
+        invalidError: 'Falha ao enviar rejeição',
+        govOnly: 'Somente governadores podem marcar árvores como inválidas',
+        invalidNote: 'Árvore marcada como INVÁLIDA — não pode ser medida'
       },
       en: {
         title: 'Monitor Tree',
@@ -334,7 +346,15 @@
         detailPlanted: 'Planted on:',
         detailStatus: 'Status:',
         detailQr: 'QR Code:',
-        detailNoPhoto: 'No photo available for this tree.'
+        detailNoPhoto: 'No photo available for this tree.',
+        tooFar: 'You appear to be {dist} from this tree — measurements must be taken on-site (200 m).',
+        markInvalid: 'Mark tree as invalid',
+        markInvalidConfirm: 'Confirm this submission is not a valid tree? (Governors only)',
+        invalidReason: 'Not a valid tree',
+        invalidSent: 'Invalidation (Reject Event) sent',
+        invalidError: 'Failed to send rejection',
+        govOnly: 'Only governors can mark trees as invalid',
+        invalidNote: 'Tree marked INVALID — cannot be measured'
       }
     };
     const DEFAULT_LANG = (navigator.language || 'pt').toLowerCase().startsWith('pt') ? 'pt' : 'en';
@@ -755,11 +775,77 @@
       if (select.value) return select.value;
       return document.getElementById('treeIdManual').value.trim();
     }
+
+    // ----- proximity gate (200 m) -----
+    const PROXIMITY_LIMIT_M = 200;
+    function getTreeDist(treeId) {
+      const tr = (treeIndex || []).find(t => t.id === treeId || t.qrCode === treeId);
+      return tr ? tr._dist : undefined;
+    }
+    function isTreeTooFar(treeId) {
+      const dist = getTreeDist(treeId);
+      return dist !== undefined && dist !== null && dist > PROXIMITY_LIMIT_M;
+    }
+    function fmtDist(m) {
+      if (m === undefined || m === null) return 'n/a';
+      return m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(m) + ' m';
+    }
+
+
+    // ----- governor gate (mirror of the GAS 'Governors' tab; keep in sync) -----
+    const GOVERNORS = ['Gary Teh','Jacob Nelan','Elizabeth Wong','Kirsten Ritschel','Shena Davenport','AGL15','Fatima Toledo','Kaon Krasniqi','Andreas Quandt','Claude'];
+    let currentContributorName = null;
+    async function loadContributorIdentity() {
+      const pk = localStorage.getItem('publicKey');
+      if (!pk) return null;
+      try {
+        const encoded = encodeURIComponent(pk);
+        const resp = await fetch(`${EDGAR_BASE}/dao/contributors?public_key=${encoded}`);
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        if (data && data.contributor_name) { currentContributorName = data.contributor_name; return data; }
+      } catch (_) {}
+      return null;
+    }
+    function isCurrentUserGovernor() {
+      return currentContributorName && GOVERNORS.includes(currentContributorName);
+    }
+    async function markTreeInvalid() {
+      const treeId = getSelectedTree();
+      if (!treeId) return;
+      if (!isCurrentUserGovernor()) { document.getElementById('treeStatus').textContent = t('govOnly'); document.getElementById('treeStatus').className = 'error'; return; }
+      if (!confirm(t('markInvalidConfirm'))) return;
+      const statusEl = document.getElementById('treeStatus');
+      statusEl.className = '';
+      statusEl.textContent = t('invalidSent');
+      try {
+        const { publicKey, privateKey } = await ensureKeyPair();
+        const now = new Date();
+        const pad = (n) => n.toString().padStart(2, '0');
+        const yyyymmddhhmmss = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        // The GAS handler matches the SunMint row by Telegram Message ID (col D).
+        // Best available stable key from the client: the tree's QR code / tree id.
+        const key = (treeIndex || []).find(t => t.id === treeId || t.qrCode === treeId);
+        const qrCode = (key && key.qrCode) || treeId;
+        const reason = t('invalidReason');
+        const requestText = `[TREE PLANTING REJECT EVENT]\n- QR Code: ${qrCode}\n- SunMint Submission Message ID: ${treeId}\n- Updated by: ${currentContributorName || 'unknown'}\n- Reason: ${reason}\n--------`;
+        const signature = await signText(privateKey, requestText);
+        const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.href}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(shareText)}`;
+        const ok = await navigator.share ? (() => { try { navigator.share({ text: shareText }); return true; } catch (_) { return false; } })() : false;
+        if (!ok) { prompt(t('invalidSent'), shareText); }
+      } catch (e) {
+        statusEl.textContent = t('invalidError') + ': ' + e.message;
+        statusEl.className = 'error';
+      }
+    }
+
     async function submitMonitoring() {
       const statusEl = document.getElementById('treeStatus');
       const treeId = getSelectedTree();
       const dbh = document.getElementById('dbhInput').value.trim();
       if (!treeId) { statusEl.textContent = t('selectTree'); statusEl.className = 'error'; return; }
+      if (isTreeTooFar(treeId)) { statusEl.textContent = t('tooFar').replace('{dist}', fmtDist(getTreeDist(treeId))); statusEl.className = 'error'; return; }
       if (!dbh) { statusEl.textContent = t('dbhRequired'); statusEl.className = 'error'; return; }
       if (!closeupBlob) { statusEl.textContent = t('closeupRequired'); statusEl.className = 'error'; return; }
 
