@@ -166,7 +166,6 @@
         <div><strong data-i18n="detailPlanted">Plantado em:</strong> <span id="treeDetailPlanted">—</span></div>
         <div><strong data-i18n="detailStatus">Status:</strong> <span id="treeDetailStatus">—</span></div>
         <div><strong data-i18n="detailQr">QR Code:</strong> <span id="treeDetailQr">—</span></div>
-        <div><strong data-i18n="detailMeasure">Medição:</strong> <span id="treeDetailMeasure">—</span></div>
         <div id="treeDetailNoPhoto" class="hint" data-i18n="detailNoPhoto" style="display:none;">Sem foto disponível para esta árvore.</div>
       </div>
     </div>
@@ -180,15 +179,15 @@
       <button type="button" class="photo-tab" id="tab-context" onclick="switchTab('context')" data-i18n="contextTab">Contexto</button>
     </div>
     <div class="photo-panel" id="panel-closeup">
-      <p class="hint" data-i18n="closeupHint">Segure o cartão de calibração contra o tronco, enquadre e tire a foto.</p>
       <video id="closeupVideo" class="camera-viewport" autoplay playsinline muted style="display:none;"></video>
+      <p class="hint" data-i18n="closeupHint">Segure o cartão de calibração contra o tronco, enquadre e tire a foto.</p>
       <img id="closeupPreview" class="photo-preview" style="display:none;">
       <button type="button" class="camera-btn" id="closeupBtn" onclick="capturePhoto('closeup')" data-i18n="closeupButton">Tirar foto</button>
       <button type="button" class="camera-btn secondary" id="closeupRetakeBtn" onclick="retakeCloseup()" style="display:none;" data-i18n="retakeButton">Tirar outra</button>
     </div>
     <div class="photo-panel" id="panel-context" hidden>
-      <p class="hint" data-i18n="contextHint">Enquadre a árvore inteira e tire a foto de contexto.</p>
       <video id="contextVideo" class="camera-viewport" autoplay playsinline muted style="display:none;"></video>
+      <p class="hint" data-i18n="contextHint">Enquadre a árvore inteira e tire a foto de contexto.</p>
       <img id="contextPreview" class="photo-preview" style="display:none;">
       <button type="button" class="camera-btn" id="contextBtn" onclick="capturePhoto('context')" data-i18n="contextButton">Tirar foto</button>
       <button type="button" class="camera-btn secondary" id="contextRetakeBtn" onclick="retakeContext()" style="display:none;" data-i18n="retakeButton2">Tirar outra</button>
@@ -264,12 +263,6 @@
         monitorSending: 'Enviando medição...',
         monitorSavedOffline: 'Medição salva no aparelho. Será enviada quando houver conexão.',
         monitorSent: 'Medição enviada com sucesso!',
-        msOk: 'Em dia',
-        msDue: 'Medição em breve',
-        msOverdue: 'Medição atrasada',
-        msNever: 'Nunca medido',
-        msDueOn: 'vence em',
-        detailMeasure: 'Medição:',
         monitorError: 'Erro ao enviar medição: ',
         locationUnavailable: 'Localização indisponível — você ainda pode registrar; GPS necessário para envio.',
         locationNote: ' (localização não estava disponível no momento do registro)',
@@ -329,12 +322,6 @@
         monitorSending: 'Sending measurement...',
         monitorSavedOffline: 'Measurement saved on device. It will be sent when a connection is available.',
         monitorSent: 'Measurement sent successfully!',
-        msOk: 'Up to date',
-        msDue: 'Due soon',
-        msOverdue: 'Overdue',
-        msNever: 'Never measured',
-        msDueOn: 'due',
-        detailMeasure: 'Measurement:',
         monitorError: 'Error sending measurement: ',
         locationUnavailable: 'Location unavailable — you can still record; GPS required for submission.',
         locationNote: ' (location was not available at recording time)',
@@ -471,29 +458,6 @@
         Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
-
-    // Measurement cadence: annual minimum (matches Verra/GS/ACR/CAR), 6-monthly
-    // recommended for young trees. Status computed from last_measured (falls back
-    // to planted_at as the baseline first-measurement).
-    const MS_OK_DAYS = 274;    // < 9 months: green
-    const MS_DUE_DAYS = 365;   // 9-12 months: amber; > 12 months: red
-    function measureStatus(tree) {
-      const raw = tree.lastMeasured || tree.plantedAt || null;
-      if (!raw) return { key: 'never', emoji: '\u26aa', label: t('msNever') };
-      const d = new Date(raw);
-      if (isNaN(d.getTime())) return { key: 'never', emoji: '\u26aa', label: t('msNever') };
-      const ageDays = (Date.now() - d.getTime()) / 86400000;
-      if (ageDays > MS_DUE_DAYS) return { key: 'overdue', emoji: '\ud83d\udf34', label: t('msOverdue') };
-      if (ageDays > MS_OK_DAYS) return { key: 'due', emoji: '\ud83d\udfe0', label: t('msDue') };
-      return { key: 'ok', emoji: '\ud83d\udfe2', label: t('msOk') };
-    }
-    function measureDueDate(tree) {
-      const raw = tree.lastMeasured || tree.plantedAt || null;
-      if (!raw) return null;
-      const d = new Date(raw);
-      if (isNaN(d.getTime())) return null;
-      return new Date(d.getTime() + MS_DUE_DAYS * 86400000);
-    }
     async function loadTreeIndex() {
       for (const url of TREE_INDEX_URLS) {
         try {
@@ -509,7 +473,6 @@
               lat: coords ? coords[1] : (p.lat || null),
               lng: coords ? coords[0] : (p.lng || null),
               lastMeasured: p.last_measured || null,
-              plantedAt: p.planted_at || null,
               photo: p.photo_url || null,
               status: p.status || null,
               qrCode: p.qr_code || null
@@ -535,8 +498,7 @@
               ? (tree._dist / 1000).toFixed(1).replace('.', ',') + ' km'
               : Math.round(tree._dist) + ' m')
           : '';
-        const ms = measureStatus(tree);
-        html += `<option value="${tree.id}">${ms.emoji} ${tree.id}${distText}</option>`;
+        html += `<option value="${tree.id}">${tree.id}${distText}</option>`;
       });
       select.innerHTML = html;
     }
@@ -566,10 +528,6 @@
       plantedEl.textContent = tree.lastMeasured ? new Date(tree.lastMeasured).toLocaleString() : '—';
       statusEl.textContent = tree.status || '—';
       qrEl.textContent = tree.qrCode || '—';
-      const ms = measureStatus(tree);
-      const due = measureDueDate(tree);
-      const dueText = due ? ' · ' + t('msDueOn') + ' ' + due.toLocaleDateString() : '';
-      document.getElementById('treeDetailMeasure').textContent = ms.emoji + ' ' + ms.label + dueText;
       if (tree.photo) {
         photoImg.src = tree.photo;
         photoImg.style.display = 'block';
