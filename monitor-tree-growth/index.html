@@ -179,6 +179,7 @@
     <p class="hint" data-i18n="dbhHint">Segure o cartão de calibração contra o tronco, dentro do quadro.</p>
     <input type="number" id="dbhInput" step="0.1" min="0.5" placeholder="ex: 12.5">
 
+    <div id="photoSection" style="display:none;">
     <div class="photo-tabs" role="tablist">
       <button type="button" class="photo-tab active" id="tab-closeup" onclick="switchTab('closeup')" data-i18n="closeupTab">Foto de perto</button>
       <button type="button" class="photo-tab" id="tab-context" onclick="switchTab('context')" data-i18n="contextTab">Contexto</button>
@@ -196,6 +197,7 @@
       <img id="contextPreview" class="photo-preview" style="display:none;">
       <button type="button" class="camera-btn" id="contextBtn" onclick="capturePhoto('context')" data-i18n="contextButton">Tirar foto</button>
       <button type="button" class="camera-btn secondary" id="contextRetakeBtn" onclick="retakeContext()" style="display:none;" data-i18n="retakeButton2">Tirar outra</button>
+    </div>
     </div>
 
     <button class="submit-btn" id="monitorSubmitBtn" onclick="submitMonitoring()" data-i18n="monitorButton">Enviar medição</button>
@@ -566,6 +568,27 @@
       });
       select.innerHTML = html;
     }
+    function resetCaptures() {
+      closeupBlob = null; contextBlob = null;
+      ['closeup','context'].forEach(m => {
+        const pv = document.getElementById(m + 'Preview');
+        if (pv) { pv.style.display = 'none'; pv.removeAttribute('src'); }
+        const btn = document.getElementById(m + 'Btn');
+        if (btn) btn.style.display = 'inline-block';
+        const rb = document.getElementById(m + 'RetakeBtn');
+        if (rb) rb.style.display = 'none';
+        const tab = document.getElementById('tab-' + m);
+        if (tab) tab.classList.remove('done');
+      });
+    }
+    function showPhotoSection() {
+      document.getElementById('photoSection').style.display = 'block';
+      switchTab('closeup');
+    }
+    function hidePhotoSection() {
+      stopCamera();
+      document.getElementById('photoSection').style.display = 'none';
+    }
     function onTreeSelectChange() {
       const select = document.getElementById('treeSelect');
       const manual = document.getElementById('treeIdManual');
@@ -574,10 +597,13 @@
         manual.style.display = 'block';
         panel.style.display = 'none';
         setTreeParam('');
+        hidePhotoSection();
       } else {
         manual.style.display = 'none';
         renderTreeDetail(select.value);
         setTreeParam(select.value);
+        resetCaptures();
+        showPhotoSection();
       }
     }
     function renderTreeDetail(treeId) {
@@ -986,6 +1012,7 @@
       document.getElementById('treeSelect').addEventListener('change', onTreeSelectChange);
       document.getElementById('treeIdManual').addEventListener('input', function () {
         setTreeParam(this.value.trim());
+        if (this.value.trim()) showPhotoSection(); else hidePhotoSection();
       });
       // Deep link: restore selected tree from ?tree=<id>
       const urlTree = new URLSearchParams(window.location.search).get('tree');
@@ -1003,8 +1030,6 @@
         }
       }
       statusEl.textContent = '';
-      // Auto-start the close-up camera so the live viewport is visible immediately
-      startCamera('closeup');
     };
   </script>
 
