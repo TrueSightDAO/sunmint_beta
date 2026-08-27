@@ -615,24 +615,16 @@
     }
     function startCamera(mode) {
       activeCaptureMode = mode;
-      const video = document.createElement('video');
-      video.id = mode + 'Video';
-      video.autoplay = true;
-      video.playsInline = true;
-      video.style.width = '100%';
-      const target = document.getElementById(mode + 'Preview');
-      target.style.display = 'none';
-      if (!document.getElementById(mode + 'Video')) {
-        const wrap = document.createElement('div');
-        wrap.id = mode + 'VideoWrap';
-        wrap.appendChild(video);
-        target.parentNode.insertBefore(wrap, target);
-      }
+      const video = document.getElementById(mode + 'Video');
+      const preview = document.getElementById(mode + 'Preview');
+      if (preview) preview.style.display = 'none';
+      if (!video) return;
+      video.style.display = 'block';
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
         .then((stream) => {
           mediaStream = stream;
           video.srcObject = stream;
-          video.play();
+          video.play().catch(() => {});
         })
         .catch((error) => {
           const statusEl = document.getElementById('treeStatus');
@@ -672,8 +664,8 @@
           document.getElementById('contextRetakeBtn').style.display = 'inline-block';
         }
         stopCamera();
-        const wrap = document.getElementById(mode + 'VideoWrap');
-        if (wrap) wrap.remove();
+        const v = document.getElementById(mode + 'Video');
+        if (v) v.style.display = 'none';
         markTabDone(mode);
         if (mode === 'closeup' && !contextBlob) {
           const statusEl = document.getElementById('treeStatus');
@@ -1011,6 +1003,8 @@
         }
       }
       statusEl.textContent = '';
+      // Auto-start the close-up camera so the live viewport is visible immediately
+      startCamera('closeup');
     };
   </script>
 
