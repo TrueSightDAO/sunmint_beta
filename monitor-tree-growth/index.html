@@ -248,6 +248,12 @@
         contextLabel: 'Foto de contexto (árvore inteira)',
         contextButton: 'Tirar foto de contexto',
         retakeButton2: 'Tirar outra',
+        cameraStarting: 'Ativando câmera…',
+        cameraDenied: 'Permissão de câmera negada. Permita o acesso à câmera nas configurações do navegador e tente novamente.',
+        cameraNotFound: 'Nenhuma câmera encontrada neste dispositivo.',
+        cameraBusy: 'A câmera está em uso por outro aplicativo.',
+        cameraUnsupported: 'Câmera não suportada neste navegador.',
+        cameraError: 'Erro de câmera: ',
         monitorButton: 'Enviar medição',
         emailHeading: 'Vincular email (opcional)',
         emailHint: 'Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.',
@@ -322,6 +328,12 @@
         contextLabel: 'Context photo (whole tree)',
         contextButton: 'Take context photo',
         retakeButton2: 'Retake',
+        cameraStarting: 'Starting camera…',
+        cameraDenied: 'Camera permission denied. Allow camera access in your browser settings and try again.',
+        cameraNotFound: 'No camera found on this device.',
+        cameraBusy: 'The camera is in use by another application.',
+        cameraUnsupported: 'Camera not supported in this browser.',
+        cameraError: 'Camera error: ',
         monitorButton: 'Send measurement',
         emailHeading: 'Link email (optional)',
         emailHint: 'Your email identifies you in the TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.',
@@ -591,7 +603,11 @@
     }
     function showPhotoSection() {
       document.getElementById('photoSection').style.display = 'block';
-      switchTab('closeup');
+      // Do NOT auto-start the camera here: on deep links (?tree=<id>) this runs
+      // during page load, outside a user gesture, and browsers reject
+      // getUserMedia (NotAllowedError), leaving a black camera-viewport.
+      // The camera starts on the first real interaction (tab click or button).
+      switchTab('closeup', false);
     }
     function hidePhotoSection() {
       stopCamera();
@@ -653,18 +669,37 @@
       const preview = document.getElementById(mode + 'Preview');
       if (preview) preview.style.display = 'none';
       if (!video) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError(t('cameraUnsupported'));
+        return;
+      }
       video.style.display = 'block';
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+      navigator.mediaDevices.getUserMedia({
+        video: isMobileDevice()
+          ? { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : true,
+        audio: false
+      })
         .then((stream) => {
           mediaStream = stream;
           video.srcObject = stream;
           video.play().catch(() => {});
         })
         .catch((error) => {
-          const statusEl = document.getElementById('treeStatus');
-          statusEl.textContent = t('monitorError') + error.message;
-          statusEl.className = 'error';
+          setCameraError(cameraErrorMessage(error));
         });
+    }
+    function setCameraError(msg) {
+      const statusEl = document.getElementById('treeStatus');
+      if (statusEl) { statusEl.textContent = msg; statusEl.className = 'error'; }
+    }
+    function cameraErrorMessage(err) {
+      const name = (err && err.name) || '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') return t('cameraDenied');
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError') return t('cameraNotFound');
+      if (name === 'NotReadableError' || name === 'TrackStartError') return t('cameraBusy');
+      if (name === 'NotSupportedError' || name === 'AbortError' || name === 'SecurityError') return t('cameraUnsupported');
+      return t('cameraError') + (err && err.message ? err.message : name);
     }
     function stopCamera() {
       if (mediaStream) {
@@ -704,7 +739,7 @@
         updateSubmitState();
       }, 'image/jpeg', 0.85);
     }
-    function switchTab(mode) {
+    function switchTab(mode, autoStart) {
       // stop any running camera
       stopCamera();
       const other = mode === 'closeup' ? 'context' : 'closeup';
@@ -712,10 +747,16 @@
       document.getElementById('panel-' + other).hidden = true;
       document.getElementById('tab-' + mode).classList.add('active');
       document.getElementById('tab-' + other).classList.remove('active');
-      // auto-start camera if this tab's photo isn't captured yet
+      // auto-start camera if this tab's photo isn't captured yet AND we're in a
+      // user gesture (autoStart !== false). Deep-link init passes false so
+      // getUserMedia is never called outside a click/tap.
       const blob = mode === 'closeup' ? closeupBlob : contextBlob;
-      if (!blob) {
+      if (!blob && autoStart !== false) {
         startCamera(mode);
+      } else if (!blob) {
+        // no gesture yet: camera starts on the first "take photo" tap
+        const btn = document.getElementById(mode + 'Btn');
+        if (btn) btn.style.display = 'inline-block';
       } else {
         // show the captured preview
         document.getElementById(mode + 'Preview').style.display = 'block';
@@ -1034,6 +1075,8 @@
           document.getElementById('treeIdManual').style.display = 'block';
           document.getElementById('treeDetailPanel').style.display = 'none';
           setTreeParam(urlTree);
+          // show the capture UI even when the tree id isn't in the local index
+          showPhotoSection();
         }
       }
       statusEl.textContent = '';
