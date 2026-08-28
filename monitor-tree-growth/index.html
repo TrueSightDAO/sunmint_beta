@@ -1039,6 +1039,7 @@
 
       await ensureKeyPair().catch(() => {});
       await checkSignatureRegistration(localStorage.getItem('publicKey') || '');
+      await loadContributorIdentity();
 
       requestLocation();
       checkVerificationLink();
@@ -1070,6 +1071,7 @@
         if (match && select.querySelector('option[value="' + CSS.escape(match.id) + '"]')) {
           select.value = match.id;
           onTreeSelectChange();
+          maybeShowInvalidZone();
         } else {
           document.getElementById('treeIdManual').value = urlTree;
           document.getElementById('treeIdManual').style.display = 'block';
