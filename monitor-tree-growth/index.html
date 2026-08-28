@@ -628,6 +628,7 @@
         setTreeParam(select.value);
         resetCaptures();
         showPhotoSection();
+        maybeShowInvalidZone();
       }
     }
     function renderTreeDetail(treeId) {
@@ -925,6 +926,10 @@
     function isCurrentUserGovernor() {
       return currentContributorName && GOVERNORS.includes(currentContributorName);
     }
+    function maybeShowInvalidZone() {
+      const zone = document.getElementById('invalidZone');
+      if (zone && isCurrentUserGovernor()) zone.style.display = 'block';
+    }
     async function markTreeInvalid() {
       const treeId = getSelectedTree();
       if (!treeId) return;
@@ -1039,6 +1044,7 @@
 
       await ensureKeyPair().catch(() => {});
       await checkSignatureRegistration(localStorage.getItem('publicKey') || '');
+      await loadContributorIdentity();
 
       requestLocation();
       checkVerificationLink();
@@ -1070,6 +1076,7 @@
         if (match && select.querySelector('option[value="' + CSS.escape(match.id) + '"]')) {
           select.value = match.id;
           onTreeSelectChange();
+          maybeShowInvalidZone();
         } else {
           document.getElementById('treeIdManual').value = urlTree;
           document.getElementById('treeIdManual').style.display = 'block';
