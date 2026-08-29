@@ -1134,7 +1134,14 @@
       document.getElementById('treeSelect').addEventListener('change', onTreeSelectChange);
       document.getElementById('treeIdManual').addEventListener('input', function () {
         setTreeParam(this.value.trim());
-        if (this.value.trim()) showPhotoSection(); else hidePhotoSection();
+        if (this.value.trim()) {
+          showPhotoSection();
+          maybeShowInvalidZone();
+        } else {
+          hidePhotoSection();
+          const zone = document.getElementById('invalidZone');
+          if (zone) zone.style.display = 'none';
+        }
       });
       // Deep link: restore selected tree from ?tree=<id>
       const urlTree = new URLSearchParams(window.location.search).get('tree');
