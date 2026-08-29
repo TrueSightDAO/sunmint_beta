@@ -1063,6 +1063,14 @@
         await updatePendingBadge();
         statusEl.textContent = t('invalidDone');
         statusEl.className = 'success';
+        treeIndex = (treeIndex || []).filter(t => t.id !== treeId && t.qrCode !== treeId);
+        populateTreeDropdown(treeIndex);
+        const select = document.getElementById('treeSelect');
+        select.value = '';
+        document.getElementById('treeDetailPanel').style.display = 'none';
+        document.getElementById('treeIdManual').style.display = 'block';
+        hidePhotoSection();
+        setTreeParam('');
         flushQueue();
       } catch (e) {
         document.getElementById('markInvalidBtn').disabled = false;
