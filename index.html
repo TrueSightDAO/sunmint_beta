@@ -561,7 +561,8 @@
       unlinkedEl.style.display = linked ? 'none' : '';
       linkedEl.style.display = linked ? '' : 'none';
       document.getElementById('linkedEmailDisplay').textContent = linked;
-      document.getElementById('emailLinkedLabel').textContent = t('emailLinkedLabel');
+      // Note: no #emailLinkedLabel element exists (only data-i18n="emailLinkedLabel"),
+      // so do not touch it here — setLang() keeps it in sync.
     }
 
     function unlinkEmail() {
@@ -793,8 +794,9 @@
       const preview = document.getElementById('treePhotoPreview');
       const cameraStatus = document.getElementById('cameraStatus');
       if (!cameraStream || !video.srcObject) {
-        cameraStatus.textContent = t('cameraUnsupported');
-        cameraStatus.className = 'error';
+        // Camera not running yet — first tap starts it (mirrors
+        // monitor-tree-growth's gesture-safety pattern); tap again to capture.
+        startTreeCamera();
         return;
       }
       canvas.width = video.videoWidth;
@@ -942,7 +944,9 @@
     updatePendingBadge();
     flushTreeReportQueue(); // backfill anything queued from a previous offline session
     window.addEventListener('online', flushTreeReportQueue);
-    startTreeCamera(); // ask for camera permission up front so it's ready when needed
+    // Camera is NOT started on page load — it starts on the first capture tap
+    // (see capturePhoto), so page load never triggers a getUserMedia prompt
+    // outside a user gesture.
   </script>
 </body>
 </html>

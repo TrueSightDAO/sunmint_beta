@@ -77,7 +77,7 @@
     .photo-tab.done::after { content: ' ✓'; }
     .photo-panel { border: 1px solid #ccc; border-top: none; border-radius: 0 0 6px 6px; padding: 0.8rem; }
     .photo-panel[hidden] { display: none; }
-    .camera-viewport { width: 100%; border-radius: 6px; background: #000; min-height: 180px; margin-top: 0.5rem; }
+    .camera-viewport { width: 100%; max-width: 100%; max-height: 40vh; object-fit: cover; height: auto; border-radius: 6px; background: #000; min-height: 180px; margin-top: 0.5rem; }
     .status { margin-top: 0.6rem; font-size: 0.9rem; color: #1b5e20; }
     .status.error { color: #b71c1c; }
     .status.success { color: #1b5e20; }
@@ -637,19 +637,20 @@
       const ready = !!(closeupBlob && contextBlob);
       btn.disabled = !ready;
     }
-    function showPhotoSection() {
+    function showPhotoSection(startCameraNow) {
       document.getElementById('photoSection').style.display = 'block';
-      // Do NOT auto-start the camera here: on deep links (?tree=<id>) this runs
-      // during page load, outside a user gesture, and browsers reject
-      // getUserMedia (NotAllowedError), leaving a black camera-viewport.
-      // The camera starts on the first real interaction (tab click or button).
-      switchTab('closeup', false);
+      // Auto-start the camera ONLY on a real user gesture (dropdown pick or
+      // manual tree-ID typing). On deep links (?tree=<id>) this runs during
+      // page load, outside a gesture — browsers reject getUserMedia
+      // (NotAllowedError), leaving a black camera-viewport — so those callers
+      // pass false and the camera starts on the first real interaction.
+      switchTab('closeup', startCameraNow !== false);
     }
     function hidePhotoSection() {
       stopCamera();
       document.getElementById('photoSection').style.display = 'none';
     }
-    function onTreeSelectChange() {
+    function onTreeSelectChange(isDeepLinkInit) {
       const select = document.getElementById('treeSelect');
       const manual = document.getElementById('treeIdManual');
       const panel = document.getElementById('treeDetailPanel');
@@ -663,7 +664,9 @@
         renderTreeDetail(select.value);
         setTreeParam(select.value);
         resetCaptures();
-        showPhotoSection();
+        // User-gesture path (dropdown pick) starts the camera immediately;
+        // deep-link page-load init (isDeepLinkInit=true) stays deferred.
+        showPhotoSection(!isDeepLinkInit);
         maybeShowInvalidZone();
       }
     }
@@ -1163,7 +1166,7 @@
       document.getElementById('treeIdManual').addEventListener('input', function () {
         setTreeParam(this.value.trim());
         if (this.value.trim()) {
-          showPhotoSection();
+          showPhotoSection(true); // user typing — real gesture, start camera now
           maybeShowInvalidZone();
         } else {
           hidePhotoSection();
@@ -1178,7 +1181,7 @@
         const select = document.getElementById('treeSelect');
         if (match && select.querySelector('option[value="' + CSS.escape(match.id) + '"]')) {
           select.value = match.id;
-          onTreeSelectChange();
+          onTreeSelectChange(true); // deep-link init — defer camera start
           maybeShowInvalidZone();
         } else {
           document.getElementById('treeIdManual').value = urlTree;
@@ -1186,7 +1189,7 @@
           document.getElementById('treeDetailPanel').style.display = 'none';
           setTreeParam(urlTree);
           // show the capture UI even when the tree id isn't in the local index
-          showPhotoSection();
+          showPhotoSection(false); // deep-link init — defer camera start
         }
       }
       statusEl.textContent = '';
