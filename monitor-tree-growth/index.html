@@ -209,9 +209,15 @@
   <div class="container optional-section">
     <h3 data-i18n="emailHeading">Vincular email (opcional)</h3>
     <p class="hint" data-i18n="emailHint">Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.</p>
-    <label for="emailInput" data-i18n="emailLabel">Seu email</label>
-    <input type="email" id="emailInput" placeholder="voce@exemplo.com" autocomplete="email">
-    <button class="submit-btn" id="emailSubmitBtn" onclick="submitEmailLink()" data-i18n="emailButton">Vincular email</button>
+    <div id="emailUnlinked">
+      <label for="emailInput" data-i18n="emailLabel">Seu email</label>
+      <input type="email" id="emailInput" placeholder="voce@exemplo.com" autocomplete="email">
+      <button class="submit-btn" id="emailSubmitBtn" onclick="submitEmailLink()" data-i18n="emailButton">Vincular email</button>
+    </div>
+    <div id="emailLinked" style="display:none;">
+      <p class="hint"><span data-i18n="emailLinkedLabel"></span> <strong id="linkedEmailDisplay"></strong></p>
+      <button class="submit-btn" id="emailUnlinkBtn" onclick="unlinkEmail()" data-i18n="emailUnlinkButton">Desvincular email</button>
+    </div>
     <div id="status" aria-live="polite"></div>
   </div>
 
@@ -259,6 +265,11 @@
         emailHint: 'Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.',
         emailLabel: 'Seu email',
         emailButton: 'Vincular email',
+        emailVerified: 'Email confirmado com sucesso!',
+        emailLinkedLabel: 'Email vinculado:',
+        emailUnlinkButton: 'Desvincular email',
+        emailUnlinkConfirm: 'Desvincular este email? Sua assinatura digital neste navegador será removida.',
+        emailUnlinked: 'Email desvinculado. Sua assinatura digital foi removida deste navegador.',
         downloadHeading: 'Baixe o aplicativo Android',
         downloadHint: 'Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.',
         downloadButton: 'Baixar APK (Android)',
@@ -339,6 +350,11 @@
         emailHint: 'Your email identifies you in the TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.',
         emailLabel: 'Your email',
         emailButton: 'Link email',
+        emailVerified: 'Email confirmed successfully!',
+        emailLinkedLabel: 'Email linked:',
+        emailUnlinkButton: 'Unlink email',
+        emailUnlinkConfirm: 'Unlink this email? Your digital signature on this browser will be removed.',
+        emailUnlinked: 'Email unlinked. Your digital signature was removed from this browser.',
         downloadHeading: 'Download the Android app',
         downloadHint: 'Prefer the native app? Works offline and stores records on your phone.',
         downloadButton: 'Download APK (Android)',
@@ -881,6 +897,29 @@
         btn.disabled = false;
       }
     }
+    function getLinkedEmail() {
+      return localStorage.getItem('sunmint_linked_email') || '';
+    }
+
+    function renderEmailSection() {
+      const linked = getLinkedEmail();
+      document.getElementById('emailUnlinked').style.display = linked ? 'none' : '';
+      document.getElementById('emailLinked').style.display = linked ? '' : 'none';
+      document.getElementById('linkedEmailDisplay').textContent = linked;
+      document.getElementById('emailLinkedLabel').textContent = t('emailLinkedLabel');
+    }
+
+    function unlinkEmail() {
+      if (!confirm(t('emailUnlinkConfirm'))) return;
+      localStorage.removeItem('publicKey');
+      localStorage.removeItem('privateKey');
+      localStorage.removeItem('sunmint_linked_email');
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = t('emailUnlinked');
+      statusEl.className = 'success';
+      renderEmailSection();
+    }
+
     async function checkVerificationLink() {
       const url = new URL(window.location.href);
       const vk = url.searchParams.get('vk');
@@ -897,8 +936,14 @@
         formData.append('text', shareText);
         const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
         if (!resp.ok) throw new Error(await resp.text());
-        statusEl.textContent = t('emailSent');
+        statusEl.textContent = t('emailVerified');
         statusEl.className = 'success';
+        localStorage.setItem('sunmint_linked_email', em);
+        renderEmailSection();
+        const urlClean = new URL(window.location.href);
+        urlClean.searchParams.delete('vk');
+        urlClean.searchParams.delete('em');
+        window.history.replaceState({}, document.title, urlClean.pathname + urlClean.search + urlClean.hash);
       } catch (err) {
         statusEl.textContent = t('emailError') + err.message;
         statusEl.className = 'error';
@@ -1068,6 +1113,7 @@
 
       requestLocation();
       checkVerificationLink();
+      renderEmailSection();
       updatePendingBadge();
 
       statusEl.textContent = t('treeLoading');
