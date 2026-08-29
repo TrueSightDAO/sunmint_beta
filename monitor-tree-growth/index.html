@@ -1190,6 +1190,7 @@
           setTreeParam(urlTree);
           // show the capture UI even when the tree id isn't in the local index
           showPhotoSection(false); // deep-link init — defer camera start
+          maybeShowInvalidZone();
         }
       }
       statusEl.textContent = '';
