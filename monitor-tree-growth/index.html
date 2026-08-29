@@ -828,9 +828,35 @@
       try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch (_) { return []; }
     }
     function savePending(list) { localStorage.setItem(PENDING_KEY, JSON.stringify(list)); }
+    function blobToDataURL(blob) {
+      return new Promise((resolve, reject) => {
+        if (!blob || typeof blob.arrayBuffer !== 'function') return resolve(null);
+        blob.arrayBuffer().then(buf => {
+          const bytes = new Uint8Array(buf);
+          let bin = '';
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          resolve('data:image/jpeg;base64,' + btoa(bin));
+        }).catch(reject);
+      });
+    }
+    function dataURLToBlob(dataUrl) {
+      if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return null;
+      const meta = dataUrl.split(',')[0];
+      const mime = (meta.match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+      const bin = atob(dataUrl.split(',')[1]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Blob([bytes], { type: mime });
+    }
     async function queueMonitoring(record) {
       const list = getPending();
-      list.push(record);
+      list.push({
+        id: record.id,
+        shareText: record.shareText,
+        createdAt: record.createdAt,
+        closeupDataUrl: await blobToDataURL(record.closeupBlob),
+        contextDataUrl: await blobToDataURL(record.contextBlob)
+      });
       savePending(list);
       await updatePendingBadge();
     }
@@ -851,10 +877,12 @@
       const remaining = [];
       for (const record of list) {
         try {
+          const closeupBlob = dataURLToBlob(record.closeupDataUrl || record.closeupBlob);
+          const contextBlob = dataURLToBlob(record.contextDataUrl || record.contextBlob);
           const formData = new FormData();
           formData.append('text', record.shareText);
-          if (record.closeupBlob) formData.append('attachment', record.closeupBlob, 'closeup.jpg');
-          if (record.contextBlob) formData.append('attachment', record.contextBlob, 'context.jpg');
+          if (closeupBlob) formData.append('attachment', closeupBlob, 'closeup.jpg');
+          if (contextBlob) formData.append('attachment', contextBlob, 'context.jpg');
           const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
           if (!resp.ok) throw new Error(await resp.text());
         } catch (_) {
