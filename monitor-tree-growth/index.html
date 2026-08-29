@@ -444,6 +444,7 @@
     let mediaStream = null;
     let activeCaptureMode = null; // 'closeup' | 'context'
     const PENDING_KEY = 'sunmint_monitor_pending';
+    const TREE_INDEX_CACHE_KEY = 'sunmint_tree_index_cache';
 
     // ── crypto helpers (mirrors sunmint_beta) ─────────────────────────
     function arrayBufferToBase64(buffer) {
@@ -560,13 +561,14 @@
       } catch (_) { /* non-critical */ }
     }
     async function loadTreeIndex() {
+      // Internet-first: try each remote/relative URL in order.
       for (const url of TREE_INDEX_URLS) {
         try {
           const sep = url.includes('?') ? '&' : '?';
           const resp = await fetch(url + sep + 'cb=' + Date.now(), { cache: 'no-store' });
           if (!resp.ok) continue;
           const geojson = await resp.json();
-          return (geojson.features || []).map(f => {
+          const trees = (geojson.features || []).map(f => {
             const p = f.properties || {};
             const coords = f.geometry && f.geometry.coordinates;
             return {
@@ -580,8 +582,16 @@
               qrCode: p.qr_code || null
             };
           });
+          // Successful internet load — cache for offline fallback.
+          try { localStorage.setItem(TREE_INDEX_CACHE_KEY, JSON.stringify(trees)); } catch (_) {}
+          return trees;
         } catch (_) { /* try next */ }
       }
+      // Offline / all URLs failed — fall back to the last cached index.
+      try {
+        const cached = localStorage.getItem(TREE_INDEX_CACHE_KEY);
+        if (cached) return JSON.parse(cached);
+      } catch (_) {}
       return null;
     }
     function populateTreeDropdown(trees) {
@@ -1064,6 +1074,7 @@
         statusEl.textContent = t('invalidDone');
         statusEl.className = 'success';
         treeIndex = (treeIndex || []).filter(t => t.id !== treeId && t.qrCode !== treeId);
+        try { localStorage.setItem(TREE_INDEX_CACHE_KEY, JSON.stringify(treeIndex)); } catch (_) {}
         populateTreeDropdown(treeIndex);
         const select = document.getElementById('treeSelect');
         select.value = '';
