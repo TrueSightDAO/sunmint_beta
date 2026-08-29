@@ -1,1 +1,1175 @@
-placeholder
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="description" content="Sunmint - Acompanhe o crescimento das suas árvores: meça com o cartão de calibração e registre o monitoramento.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sunmint - Monitorar Árvore</title>
+
+  <meta property="og:title" content="Sunmint - Monitorar Árvore">
+  <meta property="og:description" content="Aplicativo simplificado para agricultores: meça suas árvores e registre o crescimento.">
+  <meta property="og:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+  <meta property="og:url" content="https://sunmint.truesight.me/monitor-tree-growth/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TrueSight DAO">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sunmint - Monitorar Árvore">
+  <meta name="twitter:description" content="Aplicativo simplificado para agricultores: meça suas árvores e registre o crescimento.">
+  <meta name="twitter:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+
+  <link rel="icon" type="image/png" href="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 1rem;
+      padding: 1rem;
+      min-height: 100vh;
+      box-sizing: border-box;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background-color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+    }
+    .container.optional-section {
+      box-shadow: none;
+      border: 1px solid #e5e5e5;
+    }
+    .container.optional-section h3 {
+      color: #666;
+      font-size: 1.05rem;
+      margin: 0 0 0.6rem;
+    }
+    h1 { font-size: 1.8rem; margin: 0.5rem 0 0.2rem; }
+    .intro { color: #555; text-align: center; margin: 0 0 1rem; font-size: 0.95rem; }
+    label { font-weight: bold; display: block; margin: 0.8rem 0 0.3rem; font-size: 0.95rem; }
+    .hint { color: #777; font-size: 0.85rem; margin: 0.2rem 0 0.4rem; }
+    select, input[type="number"], input[type="email"], input[type="text"] {
+      width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px;
+      box-sizing: border-box; font-size: 1rem; margin-bottom: 0.3rem;
+    }
+    .camera-btn, .submit-btn {
+      display: inline-block; margin-top: 0.6rem; padding: 0.6rem 1.2rem;
+      border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; color: white;
+      background-color: #2e7d32;
+    }
+    .camera-btn.secondary { background-color: #888; }
+    .submit-btn { background-color: #1b5e20; width: 100%; }
+    .camera-btn:disabled, .submit-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+    .video-preview, .photo-preview {
+      width: 100%; max-width: 100%; border-radius: 6px; margin-top: 0.5rem;
+      background: #000; min-height: 160px; object-fit: contain;
+    }
+    .photo-tabs { display: flex; gap: 0.5rem; margin: 0.8rem 0 0.5rem; }
+    .photo-tab { flex: 1; padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px 6px 0 0;
+      background: #f1f1f1; cursor: pointer; text-align: center; font-weight: bold; font-size: 0.9rem; }
+    .photo-tab.active { background: #2e7d32; color: white; border-color: #2e7d32; }
+    .photo-tab.done::after { content: ' ✓'; }
+    .photo-panel { border: 1px solid #ccc; border-top: none; border-radius: 0 0 6px 6px; padding: 0.8rem; }
+    .photo-panel[hidden] { display: none; }
+    .camera-viewport { width: 100%; border-radius: 6px; background: #000; min-height: 180px; margin-top: 0.5rem; }
+    .status { margin-top: 0.6rem; font-size: 0.9rem; color: #1b5e20; }
+    .status.error { color: #b71c1c; }
+    .status.success { color: #1b5e20; }
+    .submission-result pre {
+      background: #f0f0f0; padding: 0.8rem; border-radius: 6px; font-size: 0.8rem;
+      overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto;
+    }
+    .submission-result h3 { color: #333; }
+    .nav-dropdown { margin-bottom: 1rem; text-align: center; }
+    .tree-detail { background: #f8f6f2; border: 1px solid #e5dfd3; border-radius: 8px; padding: 0.75rem; margin: 0.5rem 0 1rem; }
+    .tree-detail-photo { max-width: 100%; max-height: 220px; border-radius: 6px; margin-bottom: 0.5rem; object-fit: cover; }
+    .tree-detail-meta div { margin: 0.15rem 0; font-size: 0.9rem; }
+    .nav-dropdown select { max-width: 300px; display: inline-block; }
+    .lang-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .lang-toggle button {
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .lang-toggle button.active {
+      background-color: #2e7d32;
+      color: white;
+      border-color: #2e7d32;
+    }
+    .download-btn {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      background-color: #1b5e20;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1rem;
+    }
+    .pending-badge {
+      display: inline-block; background: #e65100; color: white; border-radius: 12px;
+      padding: 0.15rem 0.6rem; font-size: 0.8rem; margin-left: 0.4rem;
+    }
+    .badge { display: inline-block; background: #2e7d32; color: white; border-radius: 12px; padding: 0.15rem 0.6rem; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="lang-toggle">
+    <button id="langPt" class="active" onclick="setLang('pt')">Português</button>
+    <button id="langEn" onclick="setLang('en')">English</button>
+  </div>
+
+  <!-- Nav dropdown: Plant Tree / Monitor Tree -->
+  <div class="nav-dropdown">
+    <label for="pageNav" data-i18n="navLabel">Página:</label>
+    <select id="pageNav" onchange="onNavChange()">
+      <option value="plant" data-i18n="navPlant">Registrar Plantio</option>
+      <option value="monitor" data-i18n="navMonitor" selected>Monitorar Árvore</option>
+    </select>
+  </div>
+
+  <div class="container">
+    <div style="text-align:center;">
+      <img height="120px" src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo"/>
+      <h1 data-i18n="title">Monitorar Árvore</h1>
+    </div>
+    <p class="intro" data-i18n="intro">Meça sua árvore com o cartão de calibração e registre o crescimento. A análise estima o carbono (método PM002).</p>
+
+    <h2 data-i18n="monitorHeading">Registrar medição da árvore</h2>
+    <p class="hint" data-i18n="monitorHint">Selecione a árvore, tire a foto de perto com o cartão de calibração contra o tronco (1,3 m de altura) e uma foto de contexto da árvore inteira.</p>
+
+    <label for="treeSelect" data-i18n="treeLabel">Árvore próxima</label>
+    <select id="treeSelect">
+      <option value="" data-i18n="treeLoading">Carregando árvores próximas...</option>
+    </select>
+    <input type="text" id="treeIdManual" style="display:none; margin-top:0.5rem;" placeholder="Tree ID manual (ex: FOUNDERHAUS_BOUGAINVILLEA_20260821_1)" data-i18n-placeholder="treeIdManualPlaceholder">
+
+    <div id="treeDetailPanel" class="tree-detail" style="display:none;">
+      <img id="treeDetailPhoto" class="tree-detail-photo" alt="" style="display:none;">
+      <div class="tree-detail-meta">
+        <div><strong data-i18n="detailSpecies">Espécie:</strong> <span id="treeDetailSpecies">—</span></div>
+        <div><strong data-i18n="detailPlanted">Plantado em:</strong> <span id="treeDetailPlanted">—</span></div>
+        <div><strong data-i18n="detailStatus">Status:</strong> <span id="treeDetailStatus">—</span></div>
+        <div><strong data-i18n="detailQr">QR Code:</strong> <span id="treeDetailQr">—</span></div>
+        <div><strong data-i18n="detailMeasure">Measurement:</strong> <span id="treeDetailMeasure">—</span></div>
+        <div id="treeDetailNoPhoto" class="hint" data-i18n="detailNoPhoto" style="display:none;">Sem foto disponível para esta árvore.
+      <div id="invalidZone" style="display:none; margin-top:0.6rem;">
+        <button type="button" id="markInvalidBtn" onclick="markTreeInvalid()" style="background:#b23b3b;color:#fff;border:none;border-radius:6px;padding:0.5rem 0.9rem;font-size:0.9rem;">MARK INVALID</button>
+        <p id="invalidNote" style="color:#b23b3b;font-size:0.85rem;display:none;"></p>
+      </div></div>
+      </div>
+    </div>
+
+    <label for="dbhInput" data-i18n="dbhLabel">DAP (cm) — diâmetro à altura do peito (1,3 m)</label>
+    <p class="hint" data-i18n="dbhHint">Segure o cartão de calibração contra o tronco, dentro do quadro.</p>
+    <input type="number" id="dbhInput" step="0.1" min="0.5" placeholder="ex: 12.5">
+
+    <div id="photoSection" style="display:none;">
+    <div class="photo-tabs" role="tablist">
+      <button type="button" class="photo-tab active" id="tab-closeup" onclick="switchTab('closeup')" data-i18n="closeupTab">Foto de perto</button>
+      <button type="button" class="photo-tab" id="tab-context" onclick="switchTab('context')" data-i18n="contextTab">Contexto</button>
+    </div>
+    <div class="photo-panel" id="panel-closeup">
+      <p class="hint" data-i18n="closeupHint">Segure o cartão de calibração contra o tronco, enquadre e tire a foto.</p>
+      <video id="closeupVideo" class="camera-viewport" autoplay playsinline muted style="display:none;"></video>
+      <img id="closeupPreview" class="photo-preview" style="display:none;">
+      <button type="button" class="camera-btn" id="closeupBtn" onclick="capturePhoto('closeup')" data-i18n="closeupButton">Tirar foto</button>
+      <button type="button" class="camera-btn secondary" id="closeupRetakeBtn" onclick="retakeCloseup()" style="display:none;" data-i18n="retakeButton">Tirar outra</button>
+    </div>
+    <div class="photo-panel" id="panel-context" hidden>
+      <p class="hint" data-i18n="contextHint">Enquadre a árvore inteira e tire a foto de contexto.</p>
+      <video id="contextVideo" class="camera-viewport" autoplay playsinline muted style="display:none;"></video>
+      <img id="contextPreview" class="photo-preview" style="display:none;">
+      <button type="button" class="camera-btn" id="contextBtn" onclick="capturePhoto('context')" data-i18n="contextButton">Tirar foto</button>
+      <button type="button" class="camera-btn secondary" id="contextRetakeBtn" onclick="retakeContext()" style="display:none;" data-i18n="retakeButton2">Tirar outra</button>
+    </div>
+    </div>
+
+    <button class="submit-btn" id="monitorSubmitBtn" onclick="submitMonitoring()" disabled data-i18n="monitorButton">Enviar medição</button>
+    <div id="treeStatus" aria-live="polite"></div>
+    <div id="pendingBadge" style="margin-top:0.5rem;"></div>
+  </div>
+
+  <!-- Link email (optional) — reuses sunmint_beta's own flow (mirrors create_signature.html) -->
+  <div class="container optional-section">
+    <h3 data-i18n="emailHeading">Vincular email (opcional)</h3>
+    <p class="hint" data-i18n="emailHint">Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.</p>
+    <div id="emailUnlinked">
+      <label for="emailInput" data-i18n="emailLabel">Seu email</label>
+      <input type="email" id="emailInput" placeholder="voce@exemplo.com" autocomplete="email">
+      <button class="submit-btn" id="emailSubmitBtn" onclick="submitEmailLink()" data-i18n="emailButton">Vincular email</button>
+    </div>
+    <div id="emailLinked" style="display:none;">
+      <p class="hint"><span id="emailLinkedLabel" data-i18n="emailLinkedLabel"></span> <strong id="linkedEmailDisplay"></strong></p>
+      <button class="submit-btn" id="emailUnlinkBtn" onclick="unlinkEmail()" data-i18n="emailUnlinkButton">Desvincular email</button>
+    </div>
+    <div id="status" aria-live="polite"></div>
+  </div>
+
+  <div class="container submission-result" id="submissionResult" style="display:none;">
+    <h3 data-i18n="requestHeading">Pedido enviado (assinado)</h3>
+    <pre id="requestPre"></pre>
+    <h3 data-i18n="responseHeading">Resposta do servidor</h3>
+    <pre id="responsePre"></pre>
+  </div>
+
+  <script>
+    // ── i18n ──────────────────────────────────────────────────────────
+    const I18N = {
+      pt: {
+        title: 'Monitorar Árvore',
+        intro: 'Meça sua árvore com o cartão de calibração e registre o crescimento. A análise estima o carbono (método PM002).',
+        navLabel: 'Página:',
+        navPlant: 'Registrar Plantio',
+        navMonitor: 'Monitorar Árvore',
+        monitorHeading: 'Registrar medição da árvore',
+        monitorHint: 'Selecione a árvore, tire a foto de perto com o cartão de calibração contra o tronco (1,3 m de altura) e uma foto de contexto da árvore inteira.',
+        treeLabel: 'Árvore próxima',
+        treeLoading: 'Carregando árvores próximas...',
+        treeIdManualPlaceholder: 'Tree ID manual (ex: FOUNDERHAUS_BOUGAINVILLEA_20260821_1)',
+        dbhLabel: 'DAP (cm) — diâmetro à altura do peito (1,3 m)',
+        dbhHint: 'Segure o cartão de calibração contra o tronco, dentro do quadro.',
+        closeupTab: 'Foto de perto',
+        contextTab: 'Contexto',
+        closeupHint: 'Segure o cartão de calibração contra o tronco, enquadre e tire a foto.',
+        contextHint: 'Enquadre a árvore inteira e tire a foto de contexto.',
+        closeupLabel: 'Foto de perto (cartão + tronco)',
+        closeupButton: 'Tirar foto de perto',
+        retakeButton: 'Tirar outra',
+        contextLabel: 'Foto de contexto (árvore inteira)',
+        contextButton: 'Tirar foto de contexto',
+        retakeButton2: 'Tirar outra',
+        cameraStarting: 'Ativando câmera…',
+        cameraDenied: 'Permissão de câmera negada. Permita o acesso à câmera nas configurações do navegador e tente novamente.',
+        cameraNotFound: 'Nenhuma câmera encontrada neste dispositivo.',
+        cameraBusy: 'A câmera está em uso por outro aplicativo.',
+        cameraUnsupported: 'Câmera não suportada neste navegador.',
+        cameraError: 'Erro de câmera: ',
+        monitorButton: 'Enviar medição',
+        emailHeading: 'Vincular email (opcional)',
+        emailHint: 'Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.',
+        emailLabel: 'Seu email',
+        emailButton: 'Vincular email',
+        emailVerified: 'Email confirmado com sucesso!',
+        emailLinkedLabel: 'Email vinculado:',
+        emailUnlinkButton: 'Desvincular email',
+        emailUnlinkConfirm: 'Desvincular este email? Sua assinatura digital neste navegador será removida.',
+        emailUnlinked: 'Email desvinculado. Sua assinatura digital foi removida deste navegador.',
+        downloadHeading: 'Baixe o aplicativo Android',
+        downloadHint: 'Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.',
+        downloadButton: 'Baixar APK (Android)',
+        requestHeading: 'Pedido enviado (assinado)',
+        responseHeading: 'Resposta do servidor',
+        emailRequired: 'Informe seu email.',
+        emailSending: 'Enviando...',
+        emailSent: 'Email enviado! Verifique sua caixa de entrada para confirmar.',
+        emailError: 'Erro ao enviar email: ',
+        treeNotFound: 'Nenhuma árvore próxima encontrada — insira o Tree ID manualmente.',
+        treeManual: 'Árvores indisponíveis — insira o Tree ID manualmente.',
+        dbhRequired: 'Informe o DAP (cm).',
+        closeupRequired: 'Tire a foto de perto (cartão + tronco).',
+        contextRecommended: 'Dica: tire também a foto de contexto da árvore inteira.',
+        contextRequired: 'Tire a foto de contexto antes de enviar.',
+        monitorSending: 'Enviando medição...',
+        monitorSavedOffline: 'Medição salva no aparelho. Será enviada quando houver conexão.',
+        monitorSent: 'Medição enviada com sucesso!',
+        monitorError: 'Erro ao enviar medição: ',
+        locationUnavailable: 'Localização indisponível — você ainda pode registrar; GPS necessário para envio.',
+        locationNote: ' (localização não estava disponível no momento do registro)',
+        pendingCount: ' pendente(s) aguardando envio',
+        welcomeGuest: 'Assinatura digital ativa neste aparelho.',
+        selectTree: 'Selecione a árvore na lista acima ou insira o Tree ID.',
+        verified: 'Verificado',
+        unknown: 'Desconhecida',
+        detailSpecies: 'Espécie:',
+        detailPlanted: 'Plantado em:',
+        detailStatus: 'Status:',
+        detailMeasure: 'Medição:',
+        msOk: 'Em dia',
+        msDue: 'Próximo do vencimento',
+        msOverdue: 'Atrasada',
+        msNever: 'Nunca medida',
+        msDueOn: 'vence em',
+        detailQr: 'QR Code:',
+        detailNoPhoto: 'Sem foto disponível para esta árvore.',
+        tooFar: 'Você parece estar a {dist} desta árvore — as medições devem ser feitas no local (200 m).',
+        markInvalid: 'Marcar árvore como inválida',
+        markInvalidConfirm: 'Confirmar que esta submissão não é uma árvore válida? (Somente governadores)',
+        invalidReason: 'Não é uma árvore válida',
+        invalidSent: 'Marcação de invalidação enviada (Reject Event)',
+        invalidError: 'Falha ao enviar rejeição',
+        govOnly: 'Somente governadores podem marcar árvores como inválidas',
+        invalidNote: 'Árvore marcada como INVÁLIDA — não pode ser medida'
+      },
+      en: {
+        title: 'Monitor Tree',
+        intro: 'Measure your tree with the calibration card and record growth. The analysis estimates carbon (PM002 method).',
+        navLabel: 'Page:',
+        navPlant: 'Plant Tree',
+        navMonitor: 'Monitor Tree',
+        monitorHeading: 'Record tree measurement',
+        monitorHint: 'Select the tree, take a close-up photo with the calibration card against the trunk (1.3 m height), and a context photo of the whole tree.',
+        treeLabel: 'Nearby tree',
+        treeLoading: 'Loading nearby trees...',
+        treeIdManualPlaceholder: 'Manual Tree ID (e.g. FOUNDERHAUS_BOUGAINVILLEA_20260821_1)',
+        dbhLabel: 'DBH (cm) — diameter at breast height (1.3 m)',
+        dbhHint: 'Hold the calibration card against the trunk, in frame.',
+        closeupTab: 'Close-up',
+        contextTab: 'Context',
+        closeupHint: 'Hold the calibration card against the trunk, frame it, and take the photo.',
+        contextHint: 'Frame the whole tree and take the context photo.',
+        closeupLabel: 'Close-up photo (card + trunk)',
+        closeupButton: 'Take close-up photo',
+        retakeButton: 'Retake',
+        contextLabel: 'Context photo (whole tree)',
+        contextButton: 'Take context photo',
+        retakeButton2: 'Retake',
+        cameraStarting: 'Starting camera…',
+        cameraDenied: 'Camera permission denied. Allow camera access in your browser settings and try again.',
+        cameraNotFound: 'No camera found on this device.',
+        cameraBusy: 'The camera is in use by another application.',
+        cameraUnsupported: 'Camera not supported in this browser.',
+        cameraError: 'Camera error: ',
+        monitorButton: 'Send measurement',
+        emailHeading: 'Link email (optional)',
+        emailHint: 'Your email identifies you in the TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.',
+        emailLabel: 'Your email',
+        emailButton: 'Link email',
+        emailVerified: 'Email confirmed successfully!',
+        emailLinkedLabel: 'Email linked:',
+        emailUnlinkButton: 'Unlink email',
+        emailUnlinkConfirm: 'Unlink this email? Your digital signature on this browser will be removed.',
+        emailUnlinked: 'Email unlinked. Your digital signature was removed from this browser.',
+        downloadHeading: 'Download the Android app',
+        downloadHint: 'Prefer the native app? Works offline and stores records on your phone.',
+        downloadButton: 'Download APK (Android)',
+        requestHeading: 'Request sent (signed)',
+        responseHeading: 'Server response',
+        emailRequired: 'Enter your email.',
+        emailSending: 'Sending...',
+        emailSent: 'Email sent! Check your inbox to confirm.',
+        emailError: 'Error sending email: ',
+        treeNotFound: 'No nearby trees found — enter Tree ID manually.',
+        treeManual: 'Trees unavailable — enter Tree ID manually.',
+        dbhRequired: 'Enter DBH (cm).',
+        closeupRequired: 'Take the close-up photo (card + trunk).',
+        contextRecommended: 'Tip: also take a context photo of the whole tree.',
+        contextRequired: 'Take the context photo before sending.',
+        monitorSending: 'Sending measurement...',
+        monitorSavedOffline: 'Measurement saved on device. It will be sent when a connection is available.',
+        monitorSent: 'Measurement sent successfully!',
+        monitorError: 'Error sending measurement: ',
+        locationUnavailable: 'Location unavailable — you can still record; GPS required for submission.',
+        locationNote: ' (location was not available at recording time)',
+        pendingCount: ' pending awaiting upload',
+        welcomeGuest: 'Digital signature active on this device.',
+        selectTree: 'Select a tree from the list above or enter a Tree ID.',
+        verified: 'Verified',
+        unknown: 'Unknown',
+        detailSpecies: 'Species:',
+        detailPlanted: 'Planted on:',
+        detailStatus: 'Status:',
+        detailMeasure: 'Measurement:',
+        msOk: 'Up to date',
+        msDue: 'Due soon',
+        msOverdue: 'Overdue',
+        msNever: 'Never measured',
+        msDueOn: 'due',
+        detailQr: 'QR Code:',
+        detailNoPhoto: 'No photo available for this tree.',
+        tooFar: 'You appear to be {dist} from this tree — measurements must be taken on-site (200 m).',
+        markInvalid: 'Mark tree as invalid',
+        markInvalidConfirm: 'Confirm this submission is not a valid tree? (Governors only)',
+        invalidReason: 'Not a valid tree',
+        invalidSent: 'Invalidation (Reject Event) sent',
+        invalidError: 'Failed to send rejection',
+        govOnly: 'Only governors can mark trees as invalid',
+        invalidNote: 'Tree marked INVALID — cannot be measured'
+      }
+    };
+    const DEFAULT_LANG = (navigator.language || 'pt').toLowerCase().startsWith('pt') ? 'pt' : 'en';
+    let currentLang = localStorage.getItem('sunmint_lang') || DEFAULT_LANG;
+
+    function t(key) {
+      return (I18N[currentLang] && I18N[currentLang][key]) || I18N.pt[key] || key;
+    }
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('sunmint_lang', lang);
+      document.documentElement.lang = lang;
+      document.getElementById('langPt').classList.toggle('active', lang === 'pt');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        el.textContent = t(el.getAttribute('data-i18n'));
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+        el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+      });
+    }
+
+    // ── endpoints (inlined, sunmint_beta style) ───────────────────────
+    const EDGAR_BASE = 'https://edgar.truesight.me';
+    const EDGAR_SUBMIT_URL = `${EDGAR_BASE}/dao/submit_contribution`;
+    const TREE_INDEX_URLS = [
+      'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/trees/index.geojson',
+      'trees/index.geojson',
+      'https://sunmint.truesight.me/trees/index.geojson',
+      'https://beta.sunmint.truesight.me/trees/index.geojson',
+      'https://truesight.me/sunmint/trees/index.geojson'
+    ];
+
+    // ── state ─────────────────────────────────────────────────────────
+    let latitude = null, longitude = null;
+    let closeupBlob = null, contextBlob = null;
+    let treeIndex = null;
+    let isSignatureRegistered = false;
+    let mediaStream = null;
+    let activeCaptureMode = null; // 'closeup' | 'context'
+    const PENDING_KEY = 'sunmint_monitor_pending';
+
+    // ── crypto helpers (mirrors sunmint_beta) ─────────────────────────
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+    function base64ToArrayBuffer(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+    function isValidSignature(sig) {
+      return typeof sig === 'string' && sig.length > 100 && /^[A-Za-z0-9+/=]+$/.test(sig);
+    }
+    async function ensureKeyPair() {
+      let publicKey = localStorage.getItem('publicKey');
+      let privateKey = localStorage.getItem('privateKey');
+      if (!publicKey || !privateKey || !isValidSignature(publicKey)) {
+        const keyPair = await window.crypto.subtle.generateKey(
+          { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+          true, ['sign', 'verify']
+        );
+        publicKey = arrayBufferToBase64(await window.crypto.subtle.exportKey('spki', keyPair.publicKey));
+        privateKey = arrayBufferToBase64(await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey));
+        localStorage.setItem('publicKey', publicKey);
+        localStorage.setItem('privateKey', privateKey);
+      }
+      return { publicKey, privateKey };
+    }
+    async function signText(privateKeyBase64, text) {
+      const key = await window.crypto.subtle.importKey(
+        'pkcs8', base64ToArrayBuffer(privateKeyBase64),
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
+      );
+      const signature = await window.crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(text));
+      return arrayBufferToBase64(signature);
+    }
+    async function isOnline() {
+      try {
+        const resp = await fetch(`${EDGAR_BASE}/ping`, { method: 'HEAD', timeout: 5000 });
+        return resp.ok;
+      } catch (_) { return false; }
+    }
+    async function copyToClipboard(text) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (_) { return false; }
+    }
+
+    // ── check signature registration (GAS fallback; sunmint_beta style) ─
+    async function checkSignatureRegistration(publicKey) {
+      try {
+        const encoded = encodeURIComponent(publicKey);
+        const resp = await fetch(`${EDGAR_BASE}/dao/check_digital_signature?signature=${encoded}`);
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        if (data && data.registered && data.contributor_name) { isSignatureRegistered = true; return data; }
+        return null;
+      } catch (_) { return null; }
+    }
+
+    // ── location ──────────────────────────────────────────────────────
+    function requestLocation() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          latitude = pos.coords.latitude;
+          longitude = pos.coords.longitude;
+          refreshTreeDistances();
+        },
+        () => { document.getElementById('treeStatus').textContent = t('locationUnavailable'); },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    }
+
+    // ── GeoJSON tree index + nearby dropdown ──────────────────────────
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+    // Measurement cadence: annual minimum (matches Verra/GS/ACR/CAR), 6-monthly
+    // recommended for young trees. Status computed from last_measured (falls back
+    // to planted_at as the baseline first-measurement).
+    const MS_OK_DAYS = 274;    // < 9 months: green
+    const MS_DUE_DAYS = 365;   // 9-12 months: amber; > 12 months: red
+    function measureStatus(tree) {
+      const raw = tree.lastMeasured || tree.plantedAt || null;
+      if (!raw) return { key: 'never', emoji: '\u26aa', label: t('msNever') };
+      const dd = new Date(raw);
+      if (isNaN(dd.getTime())) return { key: 'never', emoji: '\u26aa', label: t('msNever') };
+      const ageDays = (Date.now() - dd.getTime()) / 86400000;
+      if (ageDays > MS_DUE_DAYS) return { key: 'overdue', emoji: '\ud83d\udf34', label: t('msOverdue') };
+      if (ageDays > MS_OK_DAYS) return { key: 'due', emoji: '\ud83d\udfe0', label: t('msDue') };
+      return { key: 'ok', emoji: '\ud83d\udfe2', label: t('msOk') };
+    }
+    function measureDueDate(tree) {
+      const raw = tree.lastMeasured || tree.plantedAt || null;
+      if (!raw) return null;
+      const dd = new Date(raw);
+      if (isNaN(dd.getTime())) return null;
+      return new Date(dd.getTime() + MS_DUE_DAYS * 86400000);
+    }
+    function setTreeParam(treeId) {
+      try {
+        const url = new URL(window.location.href);
+        if (treeId) url.searchParams.set('tree', treeId); else url.searchParams.delete('tree');
+        history.replaceState(null, '', url.toString());
+      } catch (_) { /* non-critical */ }
+    }
+    async function loadTreeIndex() {
+      for (const url of TREE_INDEX_URLS) {
+        try {
+          const sep = url.includes('?') ? '&' : '?';
+          const resp = await fetch(url + sep + 'cb=' + Date.now(), { cache: 'no-store' });
+          if (!resp.ok) continue;
+          const geojson = await resp.json();
+          return (geojson.features || []).map(f => {
+            const p = f.properties || {};
+            const coords = f.geometry && f.geometry.coordinates;
+            return {
+              id: p.tree_id || p.id || 'unknown',
+              species: p.species || 'unknown',
+              lat: coords ? coords[1] : (p.lat || null),
+              lng: coords ? coords[0] : (p.lng || null),
+              lastMeasured: p.last_measured || null,
+              photo: p.photo_url || null,
+              status: p.status || null,
+              qrCode: p.qr_code || null
+            };
+          });
+        } catch (_) { /* try next */ }
+      }
+      return null;
+    }
+    function populateTreeDropdown(trees) {
+      const select = document.getElementById('treeSelect');
+      const manual = document.getElementById('treeIdManual');
+      if (!trees || trees.length === 0) {
+        select.innerHTML = '<option value="">' + t('treeNotFound') + '</option>';
+        manual.style.display = 'block';
+        return;
+      }
+      const sorted = trees.slice().sort((a, b) => (a._dist ?? Infinity) - (b._dist ?? Infinity));
+      let html = '<option value="">' + t('selectTree') + '</option>';
+      sorted.forEach(tree => {
+        const distText = (tree._dist !== undefined && tree._dist !== null)
+          ? ' — ' + (tree._dist >= 1000
+              ? (tree._dist / 1000).toFixed(1).replace('.', ',') + ' km'
+              : Math.round(tree._dist) + ' m')
+          : '';
+        const ms = measureStatus(tree);
+        html += `<option value="${tree.id}">${ms.emoji} ${tree.id}${distText}</option>`;
+      });
+      select.innerHTML = html;
+    }
+    function refreshTreeDistances() {
+      // Geolocation resolves asynchronously (user prompt) — it can land after
+      // the dropdown was built. When it does, recompute distances and
+      // re-populate so the dropdown shows "N km / N m" and nearest-first order.
+      if (!treeIndex || latitude === null || longitude === null) return;
+      const select = document.getElementById('treeSelect');
+      const prev = select.value;
+      treeIndex.forEach(t => {
+        if (t.lat && t.lng) t._dist = haversine(parseFloat(latitude), parseFloat(longitude), t.lat, t.lng);
+      });
+      populateTreeDropdown(treeIndex);
+      // preserve current selection (deep-link or user) across the re-populate
+      if (prev && select.querySelector('option[value="' + CSS.escape(prev) + '"]')) {
+        select.value = prev;
+      }
+    }
+    function resetCaptures() {
+      closeupBlob = null; contextBlob = null;
+      ['closeup','context'].forEach(m => {
+        const pv = document.getElementById(m + 'Preview');
+        if (pv) { pv.style.display = 'none'; pv.removeAttribute('src'); }
+        updateSubmitState();
+        const btn = document.getElementById(m + 'Btn');
+        if (btn) btn.style.display = 'inline-block';
+        const rb = document.getElementById(m + 'RetakeBtn');
+        if (rb) rb.style.display = 'none';
+        const tab = document.getElementById('tab-' + m);
+        if (tab) tab.classList.remove('done');
+      });
+    }
+    function updateSubmitState() {
+      const btn = document.getElementById('monitorSubmitBtn');
+      const ready = !!(closeupBlob && contextBlob);
+      btn.disabled = !ready;
+    }
+    function showPhotoSection() {
+      document.getElementById('photoSection').style.display = 'block';
+      // Do NOT auto-start the camera here: on deep links (?tree=<id>) this runs
+      // during page load, outside a user gesture, and browsers reject
+      // getUserMedia (NotAllowedError), leaving a black camera-viewport.
+      // The camera starts on the first real interaction (tab click or button).
+      switchTab('closeup', false);
+    }
+    function hidePhotoSection() {
+      stopCamera();
+      document.getElementById('photoSection').style.display = 'none';
+    }
+    function onTreeSelectChange() {
+      const select = document.getElementById('treeSelect');
+      const manual = document.getElementById('treeIdManual');
+      const panel = document.getElementById('treeDetailPanel');
+      if (select.value === '') {
+        manual.style.display = 'block';
+        panel.style.display = 'none';
+        setTreeParam('');
+        hidePhotoSection();
+      } else {
+        manual.style.display = 'none';
+        renderTreeDetail(select.value);
+        setTreeParam(select.value);
+        resetCaptures();
+        showPhotoSection();
+        maybeShowInvalidZone();
+      }
+    }
+    function renderTreeDetail(treeId) {
+      const panel = document.getElementById('treeDetailPanel');
+      const photoImg = document.getElementById('treeDetailPhoto');
+      const speciesEl = document.getElementById('treeDetailSpecies');
+      const plantedEl = document.getElementById('treeDetailPlanted');
+      const statusEl = document.getElementById('treeDetailStatus');
+      const qrEl = document.getElementById('treeDetailQr');
+      const noPhotoEl = document.getElementById('treeDetailNoPhoto');
+      const tree = (treeIndex || []).find(t => t.id === treeId) || {};
+      panel.style.display = 'block';
+      speciesEl.textContent = tree.species || t('unknown');
+      plantedEl.textContent = tree.lastMeasured ? new Date(tree.lastMeasured).toLocaleString() : '—';
+      statusEl.textContent = tree.status || '—';
+      qrEl.textContent = tree.qrCode || '—';
+      const ms = measureStatus(tree);
+      const due = measureDueDate(tree);
+      const dueText = due ? ' · ' + t('msDueOn') + ' ' + due.toLocaleDateString() : '';
+      const measEl = document.getElementById('treeDetailMeasure');
+      if (measEl) measEl.textContent = ms.emoji + ' ' + ms.label + dueText;
+      if (tree.photo) {
+        photoImg.src = tree.photo;
+        photoImg.style.display = 'block';
+        noPhotoEl.style.display = 'none';
+      } else {
+        photoImg.style.display = 'none';
+        noPhotoEl.style.display = 'block';
+      }
+    }
+
+    // ── camera (photo capture, sunmint_beta style) ────────────────────
+    function isMobileDevice() {
+      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+    function startCamera(mode) {
+      activeCaptureMode = mode;
+      const video = document.getElementById(mode + 'Video');
+      const preview = document.getElementById(mode + 'Preview');
+      if (preview) preview.style.display = 'none';
+      if (!video) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError(t('cameraUnsupported'));
+        return;
+      }
+      video.style.display = 'block';
+      navigator.mediaDevices.getUserMedia({
+        video: isMobileDevice()
+          ? { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : true,
+        audio: false
+      })
+        .then((stream) => {
+          mediaStream = stream;
+          video.srcObject = stream;
+          video.play().catch(() => {});
+        })
+        .catch((error) => {
+          setCameraError(cameraErrorMessage(error));
+        });
+    }
+    function setCameraError(msg) {
+      const statusEl = document.getElementById('treeStatus');
+      if (statusEl) { statusEl.textContent = msg; statusEl.className = 'error'; }
+    }
+    function cameraErrorMessage(err) {
+      const name = (err && err.name) || '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') return t('cameraDenied');
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError') return t('cameraNotFound');
+      if (name === 'NotReadableError' || name === 'TrackStartError') return t('cameraBusy');
+      if (name === 'NotSupportedError' || name === 'AbortError' || name === 'SecurityError') return t('cameraUnsupported');
+      return t('cameraError') + (err && err.message ? err.message : name);
+    }
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+      ['closeup','context'].forEach(m => {
+        const v = document.getElementById(m + 'Video');
+        if (v) v.srcObject = null;
+      });
+    }
+    function capturePhoto(mode) {
+      const video = document.getElementById(mode + 'Video');
+      if (!video || !video.srcObject) { startCamera(mode); return; }
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (mode === 'closeup') {
+          closeupBlob = blob;
+          document.getElementById('closeupPreview').src = canvas.toDataURL('image/jpeg');
+          document.getElementById('closeupPreview').style.display = 'block';
+          document.getElementById('closeupBtn').style.display = 'none';
+          document.getElementById('closeupRetakeBtn').style.display = 'inline-block';
+        } else {
+          contextBlob = blob;
+          document.getElementById('contextPreview').src = canvas.toDataURL('image/jpeg');
+          document.getElementById('contextPreview').style.display = 'block';
+          document.getElementById('contextBtn').style.display = 'none';
+          document.getElementById('contextRetakeBtn').style.display = 'inline-block';
+        }
+        stopCamera();
+        const v = document.getElementById(mode + 'Video');
+        if (v) v.style.display = 'none';
+        markTabDone(mode);
+        updateSubmitState();
+      }, 'image/jpeg', 0.85);
+    }
+    function switchTab(mode, autoStart) {
+      // stop any running camera
+      stopCamera();
+      const other = mode === 'closeup' ? 'context' : 'closeup';
+      document.getElementById('panel-' + mode).hidden = false;
+      document.getElementById('panel-' + other).hidden = true;
+      document.getElementById('tab-' + mode).classList.add('active');
+      document.getElementById('tab-' + other).classList.remove('active');
+      // auto-start camera if this tab's photo isn't captured yet AND we're in a
+      // user gesture (autoStart !== false). Deep-link init passes false so
+      // getUserMedia is never called outside a click/tap.
+      const blob = mode === 'closeup' ? closeupBlob : contextBlob;
+      if (!blob && autoStart !== false) {
+        startCamera(mode);
+      } else if (!blob) {
+        // no gesture yet: camera starts on the first "take photo" tap
+        const btn = document.getElementById(mode + 'Btn');
+        if (btn) btn.style.display = 'inline-block';
+      } else {
+        // show the captured preview
+        document.getElementById(mode + 'Preview').style.display = 'block';
+        document.getElementById(mode + 'Btn').style.display = 'none';
+        document.getElementById(mode + 'RetakeBtn').style.display = 'inline-block';
+      }
+    }
+    function markTabDone(mode) {
+      document.getElementById('tab-' + mode).classList.add('done');
+    }
+    function retakeCloseup() {
+      closeupBlob = null;
+      document.getElementById('closeupPreview').style.display = 'none';
+      document.getElementById('closeupBtn').style.display = 'inline-block';
+      document.getElementById('closeupRetakeBtn').style.display = 'none';
+      document.getElementById('tab-closeup').classList.remove('done');
+      updateSubmitState();
+      startCamera('closeup');
+    }
+    function retakeContext() {
+      contextBlob = null;
+      document.getElementById('contextPreview').style.display = 'none';
+      document.getElementById('contextBtn').style.display = 'inline-block';
+      document.getElementById('contextRetakeBtn').style.display = 'none';
+      document.getElementById('tab-context').classList.remove('done');
+      updateSubmitState();
+      startCamera('context');
+    }
+
+    // ── offline queue (sunmint_beta pattern) ──────────────────────────
+    function getPending() {
+      try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch (_) { return []; }
+    }
+    function savePending(list) { localStorage.setItem(PENDING_KEY, JSON.stringify(list)); }
+    async function queueMonitoring(record) {
+      const list = getPending();
+      list.push(record);
+      savePending(list);
+      await updatePendingBadge();
+    }
+    async function updatePendingBadge() {
+      const list = getPending();
+      const badgeEl = document.getElementById('pendingBadge');
+      if (list.length > 0) {
+        badgeEl.innerHTML = '<span class="badge">' + list.length + t('pendingCount') + '</span>';
+      } else {
+        badgeEl.innerHTML = '';
+      }
+    }
+    async function flushQueue() {
+      const list = getPending();
+      if (list.length === 0) return;
+      const online = await isOnline();
+      if (!online) return;
+      const remaining = [];
+      for (const record of list) {
+        try {
+          const formData = new FormData();
+          formData.append('text', record.shareText);
+          if (record.closeupBlob) formData.append('attachment', record.closeupBlob, 'closeup.jpg');
+          if (record.contextBlob) formData.append('attachment', record.contextBlob, 'context.jpg');
+          const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+          if (!resp.ok) throw new Error(await resp.text());
+        } catch (_) {
+          remaining.push(record);
+        }
+      }
+      savePending(remaining);
+      await updatePendingBadge();
+    }
+
+    // ── email link (reuses sunmint_beta's own flow) ───────────────────
+    async function submitEmailEvent(eventName, attributes) {
+      const { publicKey, privateKey } = await ensureKeyPair();
+      const lines = Object.entries(attributes).map(([k, v]) => `- ${k}: ${v}`).join('\n');
+      const requestText = `[${eventName}]\n${lines}\n--------`;
+      const signature = await signText(privateKey, requestText);
+      const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.origin + window.location.pathname}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
+      const formData = new FormData();
+      formData.append('text', shareText);
+      const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+      if (!resp.ok) throw new Error(await resp.text());
+      return resp.text();
+    }
+    async function submitEmailLink() {
+      const statusEl = document.getElementById('status');
+      const email = document.getElementById('emailInput').value.trim();
+      if (!email) { statusEl.textContent = t('emailRequired'); statusEl.className = 'error'; return; }
+      const btn = document.getElementById('emailSubmitBtn');
+      btn.disabled = true;
+      statusEl.className = '';
+      statusEl.textContent = t('emailSending');
+      try {
+        await submitEmailEvent('EMAIL REGISTERED EVENT', { Email: email });
+        statusEl.textContent = t('emailSent');
+        statusEl.className = 'success';
+      } catch (err) {
+        statusEl.textContent = t('emailError') + err.message;
+        statusEl.className = 'error';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    function getLinkedEmail() {
+      return localStorage.getItem('sunmint_linked_email') || '';
+    }
+
+    function renderEmailSection() {
+      const linked = getLinkedEmail();
+      document.getElementById('emailUnlinked').style.display = linked ? 'none' : '';
+      document.getElementById('emailLinked').style.display = linked ? '' : 'none';
+      document.getElementById('linkedEmailDisplay').textContent = linked;
+      document.getElementById('emailLinkedLabel').textContent = t('emailLinkedLabel');
+    }
+
+    function unlinkEmail() {
+      if (!confirm(t('emailUnlinkConfirm'))) return;
+      localStorage.removeItem('publicKey');
+      localStorage.removeItem('privateKey');
+      localStorage.removeItem('sunmint_linked_email');
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = t('emailUnlinked');
+      statusEl.className = 'success';
+      renderEmailSection();
+    }
+
+    async function checkVerificationLink() {
+      const url = new URL(window.location.href);
+      const vk = url.searchParams.get('vk');
+      const em = url.searchParams.get('em');
+      if (!vk || !em) return;
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = t('emailSending');
+      try {
+        const { publicKey, privateKey } = await ensureKeyPair();
+        const requestText = `[EMAIL VERIFICATION EVENT]\n- Email: ${em}\n- Verification Key: ${vk}\n- Submission Source: ${window.location.href}\n--------`;
+        const signature = await signText(privateKey, requestText);
+        const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.origin + window.location.pathname}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
+        const formData = new FormData();
+        formData.append('text', shareText);
+        const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+        if (!resp.ok) throw new Error(await resp.text());
+        statusEl.textContent = t('emailVerified');
+        statusEl.className = 'success';
+        localStorage.setItem('sunmint_linked_email', em);
+        renderEmailSection();
+        const urlClean = new URL(window.location.href);
+        urlClean.searchParams.delete('vk');
+        urlClean.searchParams.delete('em');
+        window.history.replaceState({}, document.title, urlClean.pathname + urlClean.search + urlClean.hash);
+      } catch (err) {
+        statusEl.textContent = t('emailError') + err.message;
+        statusEl.className = 'error';
+      }
+    }
+
+    // ── submit monitoring event ───────────────────────────────────────
+    function getSelectedTree() {
+      const select = document.getElementById('treeSelect');
+      if (select.value) return select.value;
+      return document.getElementById('treeIdManual').value.trim();
+    }
+
+    // ----- proximity gate (200 m) -----
+    const PROXIMITY_LIMIT_M = 200;
+    function getTreeDist(treeId) {
+      const tr = (treeIndex || []).find(t => t.id === treeId || t.qrCode === treeId);
+      return tr ? tr._dist : undefined;
+    }
+    function isTreeTooFar(treeId) {
+      const dist = getTreeDist(treeId);
+      return dist !== undefined && dist !== null && dist > PROXIMITY_LIMIT_M;
+    }
+    function fmtDist(m) {
+      if (m === undefined || m === null) return 'n/a';
+      return m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(m) + ' m';
+    }
+
+
+    // ----- governor/sentinel gate (server-authoritative flags from /dao/check_digital_signature) -----
+    let currentContributorName = null;
+    let currentContributorIsGovernor = false;
+    let currentContributorIsSentinel = false;
+    async function loadContributorIdentity() {
+      const pk = localStorage.getItem('publicKey');
+      if (!pk) return null;
+      try {
+        const encoded = encodeURIComponent(pk);
+        const resp = await fetch(`${EDGAR_BASE}/dao/check_digital_signature?signature=${encoded}`);
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        if (data && data.registered && data.contributor_name) {
+          currentContributorName = data.contributor_name;
+          currentContributorIsGovernor = !!data.is_governor;
+          currentContributorIsSentinel = !!data.is_sentinel;
+          return data;
+        }
+      } catch (_) {}
+      return null;
+    }
+    function isCurrentUserGovernor() {
+      return !!currentContributorName && (currentContributorIsGovernor || currentContributorIsSentinel);
+    }
+    function maybeShowInvalidZone() {
+      const zone = document.getElementById('invalidZone');
+      if (zone && isCurrentUserGovernor()) zone.style.display = 'block';
+    }
+    async function markTreeInvalid() {
+      const treeId = getSelectedTree();
+      if (!treeId) return;
+      if (!isCurrentUserGovernor()) { document.getElementById('treeStatus').textContent = t('govOnly'); document.getElementById('treeStatus').className = 'error'; return; }
+      if (!confirm(t('markInvalidConfirm'))) return;
+      const statusEl = document.getElementById('treeStatus');
+      statusEl.className = '';
+      statusEl.textContent = t('invalidSent');
+      try {
+        const { publicKey, privateKey } = await ensureKeyPair();
+        const now = new Date();
+        const pad = (n) => n.toString().padStart(2, '0');
+        const yyyymmddhhmmss = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        // The GAS handler matches the SunMint row by Telegram Message ID (col D).
+        // Best available stable key from the client: the tree's QR code / tree id.
+        const key = (treeIndex || []).find(t => t.id === treeId || t.qrCode === treeId);
+        const qrCode = (key && key.qrCode) || treeId;
+        const reason = t('invalidReason');
+        const requestText = `[TREE PLANTING REJECT EVENT]\n- QR Code: ${qrCode}\n- SunMint Submission Message ID: ${treeId}\n- Updated by: ${currentContributorName || 'unknown'}\n- Reason: ${reason}\n--------`;
+        const signature = await signText(privateKey, requestText);
+        const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.href}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(shareText)}`;
+        const ok = await navigator.share ? (() => { try { navigator.share({ text: shareText }); return true; } catch (_) { return false; } })() : false;
+        if (!ok) { prompt(t('invalidSent'), shareText); }
+      } catch (e) {
+        statusEl.textContent = t('invalidError') + ': ' + e.message;
+        statusEl.className = 'error';
+      }
+    }
+
+    async function submitMonitoring() {
+      const statusEl = document.getElementById('treeStatus');
+      const treeId = getSelectedTree();
+      const dbh = document.getElementById('dbhInput').value.trim();
+      if (!treeId) { statusEl.textContent = t('selectTree'); statusEl.className = 'error'; return; }
+      if (isTreeTooFar(treeId)) { statusEl.textContent = t('tooFar').replace('{dist}', fmtDist(getTreeDist(treeId))); statusEl.className = 'error'; return; }
+      if (!dbh) { statusEl.textContent = t('dbhRequired'); statusEl.className = 'error'; return; }
+      if (!closeupBlob) { statusEl.textContent = t('closeupRequired'); statusEl.className = 'error'; return; }
+      if (!contextBlob) { statusEl.textContent = t('contextRequired'); statusEl.className = 'error'; return; }
+
+      const btn = document.getElementById('monitorSubmitBtn');
+      btn.disabled = true;
+      statusEl.className = '';
+      statusEl.textContent = t('monitorSending');
+
+      try {
+        const { publicKey, privateKey } = await ensureKeyPair();
+        const measuredAt = new Date().toISOString();
+        const now = new Date();
+        const pad = (n) => n.toString().padStart(2, '0');
+        const yyyymmddhhmmss = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        const safePublicKey = publicKey.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+        const baseName = `${yyyymmddhhmmss}_${safePublicKey}`;
+        const closeupURL = `https://github.com/TrueSightDAO/sunmint/tree/main/images/growth/${baseName}_closeup.jpg`;
+        const contextURL = `https://github.com/TrueSightDAO/sunmint/tree/main/images/growth/${baseName}_context.jpg`;
+
+        const species = (treeIndex && treeIndex.find(t => t.id === treeId))?.species || 'unknown';
+        const nearbySummary = treeIndex
+          ? treeIndex.filter(t => t.id !== treeId).map(t => t._dist !== undefined ? `${t.id}:${Math.round(t._dist)}m` : t.id).slice(0, 5).join(', ')
+          : '';
+
+        const locationLine = (latitude != null && longitude != null)
+          ? `- Latitude: ${latitude}\n- Longitude: ${longitude}\n`
+          : '';
+
+        const requestText = `[TREE GROWTH MONITORING EVENT]\n- Tree ID: ${treeId}\n- Species: ${species}\n- DBH (cm): ${dbh}\n${locationLine}- Measurement Time: ${measuredAt}\n- Close-up Photo URL: ${closeupURL}\n- Context Photo URL: ${contextURL}\n- Nearby Trees: ${nearbySummary || 'n/a'}\n- Submission Source: ${window.location.href}\n--------`;
+        const signature = await signText(privateKey, requestText);
+        const shareText = `${requestText}\n\nMy Digital Signature: ${publicKey}\n\nRequest Transaction ID: ${signature}\n\nThis submission was generated using ${window.location.href}\n\nVerify submission here: https://dapp.truesight.me/verify_request.html`;
+
+        await queueMonitoring({
+          id: baseName, shareText,
+          closeupBlob, contextBlob,
+          createdAt: measuredAt
+        });
+
+        document.getElementById('dbhInput').value = '';
+        retakeCloseup(); retakeContext();
+        statusEl.textContent = t('monitorSavedOffline');
+        statusEl.className = 'success';
+        await updatePendingBadge();
+
+        flushQueue().then(() => {
+          if (isOnline()) {
+            statusEl.textContent = t('monitorSent');
+            document.getElementById('requestPre').textContent = shareText;
+            document.getElementById('responsePre').textContent = 'OK';
+            document.getElementById('submissionResult').style.display = 'block';
+          }
+        });
+      } catch (err) {
+        statusEl.textContent = t('monitorError') + err.message;
+        statusEl.className = 'error';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── nav dropdown ──────────────────────────────────────────────────
+    function onNavChange() {
+      const select = document.getElementById('pageNav');
+      if (select.value === 'plant') {
+        window.location.href = '/';
+      } else {
+        window.location.href = '/monitor-tree-growth/';
+      }
+    }
+
+    // ── init ──────────────────────────────────────────────────────────
+    window.onload = async function () {
+      setLang(currentLang);
+      const statusEl = document.getElementById('treeStatus');
+
+      await ensureKeyPair().catch(() => {});
+      await checkSignatureRegistration(localStorage.getItem('publicKey') || '');
+      await loadContributorIdentity();
+
+      requestLocation();
+      checkVerificationLink();
+      renderEmailSection();
+      updatePendingBadge();
+
+      statusEl.textContent = t('treeLoading');
+      treeIndex = await loadTreeIndex();
+      if (treeIndex) {
+        populateTreeDropdown(treeIndex);
+        refreshTreeDistances();
+      } else {
+        document.getElementById('treeSelect').innerHTML = '<option value="">' + t('treeManual') + '</option>';
+        document.getElementById('treeIdManual').style.display = 'block';
+      }
+      document.getElementById('treeSelect').addEventListener('change', onTreeSelectChange);
+      document.getElementById('treeIdManual').addEventListener('input', function () {
+        setTreeParam(this.value.trim());
+        if (this.value.trim()) {
+          showPhotoSection();
+          maybeShowInvalidZone();
+        } else {
+          hidePhotoSection();
+          const zone = document.getElementById('invalidZone');
+          if (zone) zone.style.display = 'none';
+        }
+      });
+      // Deep link: restore selected tree from ?tree=<id>
+      const urlTree = new URLSearchParams(window.location.search).get('tree');
+      if (urlTree && treeIndex) {
+        const match = treeIndex.find(t => t.id === urlTree || t.qrCode === urlTree);
+        const select = document.getElementById('treeSelect');
+        if (match && select.querySelector('option[value="' + CSS.escape(match.id) + '"]')) {
+          select.value = match.id;
+          onTreeSelectChange();
+          maybeShowInvalidZone();
+        } else {
+          document.getElementById('treeIdManual').value = urlTree;
+          document.getElementById('treeIdManual').style.display = 'block';
+          document.getElementById('treeDetailPanel').style.display = 'none';
+          setTreeParam(urlTree);
+          // show the capture UI even when the tree id isn't in the local index
+          showPhotoSection();
+        }
+      }
+      statusEl.textContent = '';
+    };
+  </script>
+
+  <!-- Android app download (footer CTA) -->
+  <div class="container optional-section" style="text-align:center;">
+    <h3 data-i18n="downloadHeading">Baixe o aplicativo Android</h3>
+    <p class="hint" data-i18n="downloadHint">Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.</p>
+    <a class="download-btn" href="https://github.com/TrueSightDAO/sunmint_mobile/releases/download/v0.2.0-android/sunmint-android.apk" data-i18n="downloadButton">Baixar APK (Android)</a>
+  </div>
+</body>
+</html>
