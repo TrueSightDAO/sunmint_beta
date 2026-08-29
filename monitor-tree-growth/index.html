@@ -495,10 +495,10 @@
     async function checkSignatureRegistration(publicKey) {
       try {
         const encoded = encodeURIComponent(publicKey);
-        const resp = await fetch(`${EDGAR_BASE}/dao/contributors?public_key=${encoded}`);
+        const resp = await fetch(`${EDGAR_BASE}/dao/check_digital_signature?signature=${encoded}`);
         if (!resp.ok) return null;
         const data = await resp.json();
-        if (data && data.contributor_name) { isSignatureRegistered = true; return data; }
+        if (data && data.registered && data.contributor_name) { isSignatureRegistered = true; return data; }
         return null;
       } catch (_) { return null; }
     }
@@ -973,23 +973,29 @@
     }
 
 
-    // ----- governor gate (mirror of the GAS 'Governors' tab; keep in sync) -----
-    const GOVERNORS = ['Gary Teh','Jacob Nelan','Elizabeth Wong','Kirsten Ritschel','Shena Davenport','AGL15','Fatima Toledo','Kaon Krasniqi','Andreas Quandt','Claude'];
+    // ----- governor/sentinel gate (server-authoritative flags from /dao/check_digital_signature) -----
     let currentContributorName = null;
+    let currentContributorIsGovernor = false;
+    let currentContributorIsSentinel = false;
     async function loadContributorIdentity() {
       const pk = localStorage.getItem('publicKey');
       if (!pk) return null;
       try {
         const encoded = encodeURIComponent(pk);
-        const resp = await fetch(`${EDGAR_BASE}/dao/contributors?public_key=${encoded}`);
+        const resp = await fetch(`${EDGAR_BASE}/dao/check_digital_signature?signature=${encoded}`);
         if (!resp.ok) return null;
         const data = await resp.json();
-        if (data && data.contributor_name) { currentContributorName = data.contributor_name; return data; }
+        if (data && data.registered && data.contributor_name) {
+          currentContributorName = data.contributor_name;
+          currentContributorIsGovernor = !!data.is_governor;
+          currentContributorIsSentinel = !!data.is_sentinel;
+          return data;
+        }
       } catch (_) {}
       return null;
     }
     function isCurrentUserGovernor() {
-      return currentContributorName && GOVERNORS.includes(currentContributorName);
+      return !!currentContributorName && (currentContributorIsGovernor || currentContributorIsSentinel);
     }
     function maybeShowInvalidZone() {
       const zone = document.getElementById('invalidZone');
