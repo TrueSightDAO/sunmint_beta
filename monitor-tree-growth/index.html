@@ -1239,5 +1239,14 @@
     <p class="hint" data-i18n="downloadHint">Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.</p>
     <a class="download-btn" href="https://github.com/TrueSightDAO/sunmint_mobile/releases/download/v0.3.0-android/sunmint-android.apk" data-i18n="downloadButton">Baixar APK (Android)</a>
   </div>
+
+  <!-- Offline support: network-first service worker (fresh by default, cached fallback offline) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+        .then(reg => console.log('Sunmint Service Worker registered:', reg.scope))
+        .catch(err => console.warn('Sunmint Service Worker registration failed:', err));
+    }
+  </script>
 </body>
 </html>
