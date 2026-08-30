@@ -1060,7 +1060,11 @@
         // The GAS handler matches the SunMint row by Telegram Message ID (col D).
         // Best available stable key from the client: the tree's QR code / tree id.
         const key = (treeIndex || []).find(t => t.id === treeId || t.qrCode === treeId);
-        const qrCode = (key && key.qrCode) || treeId;
+        // NEVER fabricate a QR code: if this tree has no linked QR (qr_code absent from the
+        // geojson index), emit an explicit "(unlinked)" marker instead of substituting the
+        // tree id. The GAS handler matches reject rows by QR code / SunMint message id and
+        // would otherwise log "QR code not found" and silently no-op the invalidation.
+        const qrCode = (key && key.qrCode) || '(unlinked)';
         const reason = t('invalidReason');
         const requestText = `[TREE PLANTING REJECT EVENT]\n- QR Code: ${qrCode}\n- SunMint Submission Message ID: ${treeId}\n- Updated by: ${currentContributorName || 'unknown'}\n- Reason: ${reason}\n--------`;
         const signature = await signText(privateKey, requestText);
