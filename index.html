@@ -240,6 +240,7 @@
     <select id="pageNav" onchange="onNavChange()">
       <option value="plant" data-i18n="navPlant" selected>Registrar Plantio</option>
       <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
+      <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
     </select>
   </div>
 
@@ -322,6 +323,7 @@
         navLabel: "Página:",
         navPlant: "Registrar Plantio",
         navMonitor: "Monitorar Árvore",
+        navInstrucoes: "Instruções",
         downloadHeading: "Baixe o aplicativo Android",
         downloadHint: "Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.",
         downloadButton: "Baixar APK (Android)",
@@ -375,6 +377,7 @@
         navLabel: "Page:",
         navPlant: "Plant Tree",
         navMonitor: "Monitor Tree",
+        navInstrucoes: "Instructions",
         downloadHeading: "Download the Android app",
         downloadHint: "Prefer the native app? It works offline and saves your reports on your phone.",
         downloadButton: "Download APK (Android)",
@@ -934,6 +937,8 @@
       const select = document.getElementById('pageNav');
       if (select.value === 'monitor') {
         window.location.href = '/monitor-tree-growth/';
+      } else if (select.value === 'instrucoes') {
+        window.location.href = '/instrucoes/';
       } else {
         window.location.href = '/';
       }
