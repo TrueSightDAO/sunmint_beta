@@ -10,6 +10,8 @@ const URLS_TO_CACHE = [
   './index.html',
   './monitor-tree-growth/index.html',
   './limites-da-fazenda/index.html',
+  './instrucoes/index.html',
+  './instrucoes/send-as-file-tip.png',
 ];
 
 // Edgar (DAO API) — never cache. Submissions, signature checks and pings

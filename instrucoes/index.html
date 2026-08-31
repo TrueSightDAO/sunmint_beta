@@ -80,6 +80,9 @@
       margin: 0.8rem 0;
     }
     .tip strong { color: #1b5e20; }
+    .tip-img { margin: 0.8rem auto; text-align: center; }
+    .tip-img img { max-width: 100%; border-radius: 6px; border: 1px solid #ddd; }
+    .tip-img figcaption { font-size: 0.82rem; color: #777; margin-top: 0.3rem; }
     .lang-toggle {
       display: flex;
       justify-content: center;
@@ -159,6 +162,10 @@
     <div class="tip">
       <p data-i18n="sec1Tip"><strong>Dica:</strong> "Envie como arquivo em vez de foto; assim, as informações são preservadas."</p>
     </div>
+    <figure class="tip-img">
+      <img src="./send-as-file-tip.png" alt="Exemplo de orientação enviada por WhatsApp — envie como arquivo em vez de foto"/>
+      <figcaption data-i18n="sec1ImgCaption">Exemplo real de orientação a um parceiro da fazenda (WhatsApp).</figcaption>
+    </figure>
 
     <h2 data-i18n="sec2Title">2. Ative a localização no celular</h2>
     <p data-i18n="sec2Body">Permita que a câmera e o WhatsApp/Telegram usem sua localização:</p>
@@ -210,6 +217,7 @@
         sec1Title: "1. Envie como ARQUIVO, não como foto",
         sec1Body: 'Quando você envia uma foto pelo WhatsApp ou Telegram no modo "foto", o aplicativo comprime a imagem e apaga a localização (GPS). Enviando como "arquivo" ou "documento", a foto chega inteira e a localização é preservada.',
         sec1Tip: "Dica: \"Envie como arquivo em vez de foto; assim, as informações são preservadas.\"",
+        sec1ImgCaption: "Exemplo real de orientação a um parceiro da fazenda (WhatsApp).",
         sec2Title: "2. Ative a localização no celular",
         sec2Body: "Permita que a câmera e o WhatsApp/Telegram usem sua localização:",
         sec2Android: "Android: Configurações → Aplicativos → WhatsApp → Permissões → Localização → Permitir. (Faça o mesmo para a Câmera e para o Telegram.)",
@@ -244,6 +252,7 @@
         sec1Title: "1. Send as a FILE, not as a photo",
         sec1Body: 'When you send a photo through WhatsApp or Telegram in "photo" mode, the app compresses the image and strips the location (GPS). Sending it as a "file" or "document" keeps the photo intact and preserves the location.',
         sec1Tip: "Tip: \"Send as a file instead of a photo; that way the information is preserved.\"",
+        sec1ImgCaption: "Real example of guidance sent to a farm partner (WhatsApp)."
         sec2Title: "2. Turn on location on your phone",
         sec2Body: "Allow the camera and WhatsApp/Telegram to use your location:",
         sec2Android: "Android: Settings → Apps → WhatsApp → Permissions → Location → Allow. (Do the same for Camera and Telegram.)",
