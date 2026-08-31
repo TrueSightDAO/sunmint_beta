@@ -240,6 +240,7 @@
     <select id="pageNav" onchange="onNavChange()">
       <option value="plant" data-i18n="navPlant" selected>Registrar Plantio</option>
       <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
+      <option value="limites" data-i18n="navLimites">Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
     </select>
   </div>
@@ -324,6 +325,7 @@
         navPlant: "Registrar Plantio",
         navMonitor: "Monitorar Árvore",
         navInstrucoes: "Instruções",
+        navLimites: "Limites da Fazenda",
         downloadHeading: "Baixe o aplicativo Android",
         downloadHint: "Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.",
         downloadButton: "Baixar APK (Android)",
@@ -378,6 +380,7 @@
         navPlant: "Plant Tree",
         navMonitor: "Monitor Tree",
         navInstrucoes: "Instructions",
+        navLimites: "Farm Boundaries",
         downloadHeading: "Download the Android app",
         downloadHint: "Prefer the native app? It works offline and saves your reports on your phone.",
         downloadButton: "Download APK (Android)",
@@ -939,6 +942,8 @@
         window.location.href = '/monitor-tree-growth/';
       } else if (select.value === 'instrucoes') {
         window.location.href = '/instrucoes/';
+      } else if (select.value === 'limites') {
+        window.location.href = '/limites-da-fazenda/';
       } else {
         window.location.href = '/';
       }

@@ -141,6 +141,7 @@
     <select id="pageNav" onchange="onNavChange()">
       <option value="plant" data-i18n="navPlant">Registrar Plantio</option>
       <option value="monitor" data-i18n="navMonitor" selected>Monitorar Árvore</option>
+      <option value="limites" data-i18n="navLimites">Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
     </select>
   </div>
@@ -239,6 +240,7 @@
         navPlant: 'Registrar Plantio',
         navMonitor: 'Monitorar Árvore',
         navInstrucoes: 'Instruções',
+        navLimites: 'Limites da Fazenda',
         monitorHeading: 'Registrar medição da árvore',
         monitorHint: 'Selecione a árvore, tire a foto de perto com o cartão de calibração contra o tronco (1,3 m de altura) e uma foto de contexto da árvore inteira.',
         treeLabel: 'Árvore próxima',
@@ -325,6 +327,7 @@
         navPlant: 'Plant Tree',
         navMonitor: 'Monitor Tree',
         navInstrucoes: 'Instructions',
+        navLimites: 'Farm Boundaries',
         monitorHeading: 'Record tree measurement',
         monitorHint: 'Select the tree, take a close-up photo with the calibration card against the trunk (1.3 m height), and a context photo of the whole tree.',
         treeLabel: 'Nearby tree',
@@ -1162,6 +1165,8 @@
         window.location.href = '/';
       } else if (select.value === 'instrucoes') {
         window.location.href = '/instrucoes/';
+      } else if (select.value === 'limites') {
+        window.location.href = '/limites-da-fazenda/';
       } else {
         window.location.href = '/monitor-tree-growth/';
       }

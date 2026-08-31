@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limites da Fazenda | SunMint</title>
+  <style>
+    :root { --saffron:#E8A13D; --saffron-dark:#A66B2E; --earthen:#5C4A32; --cream:#FDF6EC; --green:#2E7D32; --red:#C62828; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:var(--cream); color:var(--earthen); }
+    header { background:linear-gradient(135deg,var(--saffron),var(--saffron-dark)); color:#fff; padding:14px 16px; display:flex; align-items:center; gap:10px; }
+    header h1 { margin:0; font-size:18px; flex:1; }
+    .nav-dropdown { margin:10px 16px; }
+    .nav-dropdown label { font-size:14px; margin-right:8px; }
+    .nav-dropdown select { padding:8px; border-radius:8px; border:1px solid #ccc; font-size:15px; max-width:100%; }
+    main { padding:0 16px 40px; max-width:640px; margin:0 auto; }
+    .card { background:#fff; border-radius:12px; padding:16px; margin:14px 0; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+    .card h2 { margin:0 0 10px; font-size:17px; color:var(--saffron-dark); }
+    label { display:block; font-size:14px; margin:10px 0 4px; font-weight:600; }
+    select, input[type=text], input[type=file] { width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:15px; }
+    .hint { font-size:12px; color:#777; margin-top:4px; }
+    button { margin-top:12px; width:100%; padding:12px; border:none; border-radius:10px; font-size:16px; font-weight:600; background:var(--saffron); color:#fff; cursor:pointer; }
+    button:disabled { background:#ccc; }
+    #status { margin-top:12px; font-size:14px; white-space:pre-wrap; }
+    .ok { color:var(--green); }
+    .err { color:var(--red); }
+    .pending-badge { display:inline-block; background:var(--red); color:#fff; border-radius:999px; padding:2px 10px; font-size:12px; margin-left:8px; }
+    .photo-thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .photo-thumbs img { width:72px; height:72px; object-fit:cover; border-radius:8px; border:1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌱 SunMint</h1>
+    <span>Limites da Fazenda</span>
+  </header>
+
+  <div class="nav-dropdown">
+    <label for="pageNav" data-i18n="navLabel">Página:</label>
+    <select id="pageNav" onchange="onNavChange()">
+      <option value="plant" data-i18n="navPlant">Registrar Plantio</option>
+      <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
+      <option value="limites" data-i18n="navLimites" selected>Limites da Fazenda</option>
+      <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
+    </select>
+  </div>
+
+  <main>
+    <div class="card">
+      <h2 data-i18n="bHeading">Enviar fotos dos limites da fazenda</h2>
+      <p class="hint" data-i18n="bHint">Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.</p>
+
+      <label for="farmSelect" data-i18n="farmLabel">Fazenda:</label>
+      <select id="farmSelect" onchange="onFarmSelectChange()">
+        <option value="" data-i18n="farmLoading">Carregando fazendas...</option>
+      </select>
+      <div id="newFarmWrap" style="display:none;">
+        <label for="newFarmName" data-i18n="newFarmLabel">Nome da nova fazenda:</label>
+        <input type="text" id="newFarmName" placeholder="Ex: Sítio São João" data-i18n-placeholder="newFarmPh">
+      </div>
+
+      <label for="photoInput" data-i18n="photoLabel">Fotos/vídeos dos limites:</label>
+      <input type="file" id="photoInput" accept="image/*,video/*" multiple capture="environment">
+      <div class="photo-thumbs" id="photoThumbs"></div>
+
+      <button id="submitBtn" onclick="submitBoundary()" data-i18n="submitLabel">Enviar limites</button>
+      <div id="status"></div>
+      <div id="pendingBadge"></div>
+    </div>
+  </main>
+
+  <script>
+    const BOUNDARY_QUEUE_DB = 'sunmint-boundary-queue';
+    const BOUNDARY_QUEUE_STORE = 'boundary';
+    const FARMS_DB = 'sunmint-farms';
+    const FARMS_STORE = 'farms';
+    const REMOTE_FARMS_URL = 'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/farms/index.json';
+
+    const STRINGS = {
+      'pt-BR': {
+        navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navLimites:'Limites da Fazenda', navInstrucoes:'Instruções',
+        bHeading:'Enviar fotos dos limites da fazenda', bHint:'Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.',
+        farmLabel:'Fazenda:', farmLoading:'Carregando fazendas...', newFarmLabel:'Nome da nova fazenda:', newFarmPh:'Ex: Sítio São João',
+        photoLabel:'Fotos/vídeos dos limites:', submitLabel:'Enviar limites',
+        farmSelectPh:'Selecione uma fazenda', newFarmOpt:'➕ Nova fazenda...', emptyFarms:'Nenhuma fazenda ainda — escolha "Nova fazenda"',
+        saved:'✅ Limites enviados (fila local). Enviará quando houver conexão.', queued:'⏳ Na fila offline — aguardando conexão.',
+        noFarm:'Escolha ou digite o nome da fazenda.', noMedia:'Adicione pelo menos uma foto/vídeo.',
+        err:'Erro ao salvar: '
+      }
+    };
+    const t = (k) => {
+      const lang = 'pt-BR';
+      return (STRINGS[lang] && STRINGS[lang][k]) || STRINGS['pt-BR'][k];
+    };
+
+    function setLang(lang) {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const val = t(key);
+        if (val && el.tagName !== 'SELECT') el.textContent = val;
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+      });
+      document.querySelectorAll('#pageNav option').forEach(o => {
+        const k = o.getAttribute('data-i18n');
+        if (k && t(k)) o.textContent = t(k);
+      });
+      renderFarmSelect();
+    }
+
+    // ── device-local farm store (IndexedDB) ──
+    function openFarmsDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(FARMS_DB, 1);
+        req.onupgradeneeded = () => { req.result.createObjectStore(FARMS_STORE, { keyPath: 'name' }); };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function getLocalFarms() {
+      const db = await openFarmsDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(FARMS_STORE, 'readonly');
+        const req = tx.objectStore(FARMS_STORE).getAll();
+        req.onsuccess = () => resolve(req.result.map(r => r.name));
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function addLocalFarm(name) {
+      const db = await openFarmsDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(FARMS_STORE, 'readwrite');
+        tx.objectStore(FARMS_STORE).put({ name: name, addedAt: new Date().toISOString() });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+    async function getRemoteFarms() {
+      try {
+        const res = await fetch(REMOTE_FARMS_URL + '?cb=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : (data.farms || []);
+      } catch (e) { return []; }
+    }
+    async function unionFarms() {
+      const [local, remote] = await Promise.all([getLocalFarms(), getRemoteFarms()]);
+      const seen = new Set();
+      const out = [];
+      [...local, ...remote].forEach(n => {
+        const key = String(n).trim().toLowerCase();
+        if (key && !seen.has(key)) { seen.add(key); out.push(String(n).trim()); }
+      });
+      return out;
+    }
+    function renderFarmSelect() {
+      const sel = document.getElementById('farmSelect');
+      unionFarms().then(farms => {
+        if (!farms.length) {
+          sel.innerHTML = '<option value="">' + t('emptyFarms') + '</option>';
+          return;
+        }
+        let html = '<option value="">' + t('farmSelectPh') + '</option>';
+        farms.forEach(f => { html += '<option value="' + esc(f) + '">' + esc(f) + '</option>'; });
+        html += '<option value="__new__" data-new="1">' + t('newFarmOpt') + '</option>';
+        sel.innerHTML = html;
+      });
+    }
+    function onFarmSelectChange() {
+      const sel = document.getElementById('farmSelect');
+      document.getElementById('newFarmWrap').style.display = (sel.value === '__new__') ? 'block' : 'none';
+    }
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ── photo previews ──
+    let selectedFiles = [];
+    document.getElementById('photoInput').addEventListener('change', (e) => {
+      selectedFiles = Array.from(e.target.files || []);
+      const thumbs = document.getElementById('photoThumbs');
+      thumbs.innerHTML = '';
+      selectedFiles.slice(0, 8).forEach(f => {
+        const url = URL.createObjectURL(f);
+        const img = document.createElement('img');
+        img.src = url;
+        thumbs.appendChild(img);
+      });
+    });
+
+    // ── offline queue (mirrors tree-report queue) ──
+    function openQueueDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(BOUNDARY_QUEUE_DB, 1);
+        req.onupgradeneeded = () => { req.result.createObjectStore(BOUNDARY_QUEUE_STORE, { keyPath: 'id', autoIncrement: true }); };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function queueBoundary(record) {
+      const db = await openQueueDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(BOUNDARY_QUEUE_STORE, 'readwrite');
+        tx.objectStore(BOUNDARY_QUEUE_STORE).put(record);
+        tx.oncomplete = () => resolve(record.id);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+    async function countPending() {
+      try {
+        const db = await openQueueDB();
+        return new Promise((resolve) => {
+          const tx = db.transaction(BOUNDARY_QUEUE_STORE, 'readonly');
+          const req = tx.objectStore(BOUNDARY_QUEUE_STORE).count();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(0);
+        });
+      } catch (e) { return 0; }
+    }
+    function updatePendingBadge() {
+      countPending().then(n => {
+        const el = document.getElementById('pendingBadge');
+        el.innerHTML = n ? '<span class="pending-badge">' + n + ' na fila</span>' : '';
+      });
+    }
+
+    // ── submit ──
+    async function submitBoundary() {
+      const status = document.getElementById('status');
+      const farmSel = document.getElementById('farmSelect');
+      let farmName = farmSel.value;
+      if (farmSel.value === '__new__') {
+        farmName = document.getElementById('newFarmName').value.trim();
+        if (farmName) await addLocalFarm(farmName); // rule 3: next event sees it
+      }
+      if (!farmName) { status.className='err'; status.textContent = t('noFarm'); return; }
+      if (!selectedFiles.length) { status.className='err'; status.textContent = t('noMedia'); return; }
+
+      const record = {
+        type: 'FARM_BOUNDARY_EVIDENCE',
+        farm_name: farmName,
+        is_new_farm: (farmSel.value === '__new__'),
+        media: selectedFiles.map(f => f.name),
+        media_count: selectedFiles.length,
+        captured_at: new Date().toISOString(),
+        device_gps: await getDeviceGps(),
+        status: 'queued'
+      };
+      try {
+        await queueBoundary(record);
+        status.className = 'ok';
+        status.textContent = navigator.onLine ? t('saved') : t('queued');
+        selectedFiles = [];
+        document.getElementById('photoInput').value = '';
+        document.getElementById('photoThumbs').innerHTML = '';
+        updatePendingBadge();
+      } catch (e) {
+        status.className = 'err';
+        status.textContent = t('err') + e.message;
+      }
+    }
+    function getDeviceGps() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve(null),
+          { timeout: 8000 }
+        );
+      });
+    }
+
+    function onNavChange() {
+      const select = document.getElementById('pageNav');
+      if (select.value === 'plant') window.location.href = '/';
+      else if (select.value === 'monitor') window.location.href = '/monitor-tree-growth/';
+      else if (select.value === 'instrucoes') window.location.href = '/instrucoes/';
+    }
+
+    setLang('pt-BR');
+    updatePendingBadge();
+  </script>
+
+  <!-- Offline support: network-first service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+        .then(reg => console.log('Sunmint Service Worker registered:', reg.scope))
+        .catch(err => console.warn('Sunmint Service Worker registration failed:', err));
+    }
+  </script>
+</body>
+</html>
