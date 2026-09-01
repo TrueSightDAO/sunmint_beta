@@ -273,9 +273,19 @@
         page-break-inside: auto;
       }
     }
-  </style>
+  
+    .lang-toggle { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .lang-toggle button { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 0.3rem 0.8rem; cursor: pointer; font-size: 0.9rem; color: #555; }
+    .lang-toggle button.active { background-color: #2e7d32; color: white; border-color: #2e7d32; }
+    #google_translate_element { display: none; }
+</style>
 </head>
 <body>
+
+<div class="lang-toggle">
+    <button id="langPt" class="active" onclick="setLang('pt')">Português</button>
+    <button id="langEn" onclick="setLang('en')">English</button>
+  </div>
 
 <div class="nav-dropdown">
   <label for="pageNav" data-i18n="navLabel">Página:</label>
@@ -1175,6 +1185,13 @@ function googleTranslateElementInit() {
   setLanguage(targetLanguage);
 }
 
+
+    function setLang(lang) {
+      document.getElementById('langPt').classList.toggle('active', lang === 'pt');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
+      setLanguage(lang);
+      localStorage.setItem('selectedLanguage', lang);
+    }
 function setLanguage(language) {
   const savedLanguage = localStorage.getItem('selectedLanguage');
   const finalLanguage = savedLanguage && ['en', 'pt'].includes(savedLanguage) ? savedLanguage : language;
