@@ -230,8 +230,9 @@
       const seen = new Set();
       const out = [];
       [...local, ...remote].forEach(n => {
-        const key = String(n).trim().toLowerCase();
-        if (key && !seen.has(key)) { seen.add(key); out.push(String(n).trim()); }
+        const nm = (n && typeof n === 'object' && n.name) ? String(n.name) : String(n);
+        const key = nm.trim().toLowerCase();
+        if (key && !seen.has(key)) { seen.add(key); out.push(nm.trim()); }
       });
       return out;
     }
