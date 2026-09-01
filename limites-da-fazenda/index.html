@@ -317,6 +317,8 @@
           const hit = arr.find(x => x && (x.name||'').toLowerCase() === farmName.toLowerCase());
           if (hit) farmId = hit.farm_id; }
       } catch (e) {}
+      let slugId = String(farmName).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!farmId) farmId = slugId;
       try {
         const res = await fetch(PLOTS_URL + '?cb=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) { box.innerHTML = '<p class="hint">' + t('mediaUnavailable') + '</p>'; return; }
@@ -324,7 +326,8 @@
         const nameL = farmName.toLowerCase();
         const plots = (g.features || []).filter(f => {
           const p = f.properties || {};
-          return (farmId && p.farm_id === farmId) || (p.farm && String(p.farm).toLowerCase() === nameL);
+          const nameL = farmName.toLowerCase();
+          return (farmId && p.farm_id === farmId) || (p.farm && String(p.farm).toLowerCase() === nameL) || (p.name && String(p.name).toLowerCase() === nameL);
         });
         let total = 0;
         plots.forEach(pl => { total += (pl.properties.media || []).length; });
