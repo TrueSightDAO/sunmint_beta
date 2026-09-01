@@ -3,7 +3,7 @@
 // copies served only when the network is unreachable, so the farmer app
 // still loads in the field with no signal.
 
-const CACHE_NAME = 'sunmint-cache-v1';
+const CACHE_NAME = 'sunmint-cache-v2';
 
 const URLS_TO_CACHE = [
   './',
@@ -12,6 +12,10 @@ const URLS_TO_CACHE = [
   './limites-da-fazenda/index.html',
   './instrucoes/index.html',
   './instrucoes/send-as-file-tip.png',
+  // Data JSONs pre-cached so even a first-ever offline visit has farms/plots.
+  // Network-first still serves fresh copies online; these are the offline floor.
+  'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/farms/index.json',
+  'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/plots/index.geojson',
 ];
 
 // Edgar (DAO API) — never cache. Submissions, signature checks and pings
@@ -26,9 +30,10 @@ function isEdgarUrl(url) {
 // offline fallback.
 function cacheKeyFor(url) {
   const u = new URL(url.toString());
-  if (u.origin === self.location.origin) {
-    u.search = '';
-  }
+  // Strip the ?cb=<timestamp> cache-buster for ALL URLs (same-origin AND
+  // cross-origin data like raw.githubusercontent.com farms/plots) so the
+  // offline fallback can find the cached copy regardless of the buster value.
+  if (u.searchParams.has('cb')) u.searchParams.delete('cb');
   return u.toString();
 }
 
