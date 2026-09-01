@@ -44,13 +44,6 @@
     <button id="langEn" onclick="setLang('en')">English</button>
   </div>
 
-  <header style="width:100%; max-width:600px; text-align:center; margin-bottom:0.5rem;">
-    <div style="text-align:center;">
-      <img height="120px" src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo"/>
-      <h1 style="font-size:1.8rem; color:#333; margin:0.5rem 0;">Sunmint</h1>
-      <h2 style="font-size:1.1rem; color:#555; margin:0 0 0.5rem;" data-i18n="bHeading">Enviar fotos dos limites da fazenda</h2>
-    </div>
-  </header>
 
   <div class="nav-dropdown">
     <label for="pageNav" data-i18n="navLabel">Página:</label>
@@ -64,9 +57,12 @@
   </div>
 
   <div class="container">
-      <h2 data-i18n="bHeading">Enviar fotos dos limites da fazenda</h2>
-      <p class="hint" data-i18n="bHint">Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.</p>
-
+    <div style="text-align:center;">
+      <img height="120px" src="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true" alt="TrueSight DAO Logo"/>
+      <h1>Sunmint</h1>
+    </div>
+    <p class="intro" data-i18n="bHeading">Enviar fotos dos limites da fazenda</p>
+    <p class="hint" data-i18n="bHint">Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.</p>
       <label for="farmSelect" data-i18n="farmLabel">Fazenda:</label>
       <select id="farmSelect" onchange="onFarmSelectChange()">
         <option value="" data-i18n="farmLoading">Carregando fazendas...</option>
