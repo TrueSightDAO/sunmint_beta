@@ -15,6 +15,14 @@
     .nav-dropdown label { font-weight: bold; margin-right: 0.4rem; display: inline; }
     .lang-toggle { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
     .lang-toggle button { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 0.3rem 0.8rem; cursor: pointer; font-size: 0.9rem; color: #555; }
+    .lang-toggle button.active { background-color: #2e7d32; color: white; border-color: #2e7d32; }
+    .optional-section { margin-top: 0; }
+    .submit-btn, .download-btn { display: inline-block; width: 100%; padding: 0.75rem; border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; background-color: #4CAF50; color: #fff; cursor: pointer; text-align: center; text-decoration: none; box-sizing: border-box; margin-top: 12px; }
+    .submit-btn:hover, .download-btn:hover { background-color: #45a049; }
+    .submit-btn:disabled { background: #ccc; }
+    input[type=email] { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; box-sizing: border-box; }
+    #status.success { color: #2E7D32; }
+    #status.error { color: #C62828; }
     label { display: block; font-size: 0.95rem; margin: 0.8rem 0 0.3rem; font-weight: bold; color: #333; }
     select, input[type=text], input[type=file] { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; box-sizing: border-box; }
     .hint { font-size: 0.85rem; color: #777; margin-top: 4px; }
@@ -49,6 +57,7 @@
     <select id="pageNav" onchange="onNavChange()">
       <option value="plant" data-i18n="navPlant">Registrar Plantio</option>
       <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
+      <option value="farm" data-i18n="navFarm">Registrar Fazenda</option>
       <option value="limites" data-i18n="navLimites" selected>Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
     </select>
@@ -80,6 +89,36 @@
   </main>
   </div>
 
+  <!-- Section (optional): Link email -->
+  <div class="container optional-section">
+    <h3 data-i18n="emailHeading">Vincular email (opcional)</h3>
+    <p class="hint" data-i18n="emailHint">Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.</p>
+    <div id="emailUnlinked">
+      <label for="emailInput" data-i18n="emailLabel">Seu email</label>
+      <input type="email" id="emailInput" placeholder="voce@exemplo.com" autocomplete="email" onkeydown="if(event.key==='Enter'){event.preventDefault();submitEmailLink();}">
+      <button class="submit-btn" id="emailSubmitBtn" onclick="submitEmailLink()" data-i18n="emailButton">Vincular email</button>
+    </div>
+    <div id="emailLinked" style="display:none;">
+      <p class="hint"><span data-i18n="emailLinkedLabel"></span> <strong id="linkedEmailDisplay"></strong></p>
+      <button class="submit-btn" id="emailUnlinkBtn" onclick="unlinkEmail()" data-i18n="emailUnlinkButton">Desvincular email</button>
+    </div>
+    <div id="status" aria-live="polite"></div>
+  </div>
+
+  <div class="container submission-result" id="submissionResult" style="display:none;">
+    <h3 data-i18n="requestHeading">Pedido enviado (assinado)</h3>
+    <pre id="requestPre"></pre>
+    <h3 data-i18n="responseHeading">Resposta do servidor</h3>
+    <pre id="responsePre"></pre>
+  </div>
+
+  <!-- Android app download (footer CTA) -->
+  <div class="container optional-section" style="text-align:center;">
+    <h3 data-i18n="downloadHeading">Baixe o aplicativo Android</h3>
+    <p class="hint" data-i18n="downloadHint">Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.</p>
+    <a class="download-btn" href="https://sunmint.truesight.me/sunmint-android.apk" data-i18n="downloadButton">Baixar APK (Android)</a>
+  </div>
+
   <script>
     const BOUNDARY_QUEUE_DB = 'sunmint-boundary-queue';
     const BOUNDARY_QUEUE_STORE = 'boundary';
@@ -88,23 +127,54 @@
     const REMOTE_FARMS_URL = 'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/farms/index.json';
 
     const STRINGS = {
-      'pt-BR': {
-        navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navLimites:'Limites da Fazenda', navInstrucoes:'Instruções',
+      'pt': {
+        navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navFarm:'Registrar Fazenda', navLimites:'Limites da Fazenda', navInstrucoes:'Instruções',
         bHeading:'Enviar fotos dos limites da fazenda', bHint:'Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.',
         farmLabel:'Fazenda:', farmLoading:'Carregando fazendas...', newFarmLabel:'Nome da nova fazenda:', newFarmPh:'Ex: Sítio São João',
         photoLabel:'Fotos/vídeos dos limites:', submitLabel:'Enviar limites',
         farmSelectPh:'Selecione uma fazenda', newFarmOpt:'➕ Nova fazenda...', emptyFarms:'Nenhuma fazenda ainda — escolha "Nova fazenda"',
         saved:'✅ Limites enviados (fila local). Enviará quando houver conexão.', queued:'⏳ Na fila offline — aguardando conexão.',
         noFarm:'Escolha ou digite o nome da fazenda.', noMedia:'Adicione pelo menos uma foto/vídeo.',
-        err:'Erro ao salvar: '
+        err:'Erro ao salvar: ',
+        emailHeading:'Vincular email (opcional)', emailHint:'Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.',
+        emailLabel:'Seu email', emailButton:'Vincular email', emailLinkedLabel:'Email vinculado:', emailUnlinkButton:'Desvincular email',
+        emailUnlinkConfirm:'Desvincular este email? Sua assinatura digital neste navegador será removida.',
+        emailUnlinked:'Email desvinculado. Sua assinatura digital foi removida deste navegador.',
+        emailRequired:'Por favor, digite um email.', emailSending:'Enviando...', emailSent:'Verifique seu email para confirmar o link.',
+        emailVerifying:'Confirmando seu email...', emailVerified:'Email confirmado com sucesso!', emailError:'Erro: ',
+        requestHeading:'Pedido enviado (assinado)', responseHeading:'Resposta do servidor',
+        downloadHeading:'Baixe o aplicativo Android', downloadHint:'Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.', downloadButton:'Baixar APK (Android)'
+      },
+      'en': {
+        navPlant:'Register Planting', navMonitor:'Monitor Tree', navFarm:'Register Farm', navLimites:'Farm Boundaries', navInstrucoes:'Instructions',
+        bHeading:'Send farm boundary photos', bHint:'Walk the farm corners (post, fence, roadside) and take photos. The photo GPS marks the boundary.',
+        farmLabel:'Farm:', farmLoading:'Loading farms...', newFarmLabel:'New farm name:', newFarmPh:'E.g. Sítio São João',
+        photoLabel:'Boundary photos/videos:', submitLabel:'Send boundaries',
+        farmSelectPh:'Select a farm', newFarmOpt:'➕ New farm...', emptyFarms:'No farms yet — choose "New farm"',
+        saved:'✅ Boundaries queued locally. Will send when online.', queued:'⏳ Offline queue — waiting for connection.',
+        noFarm:'Choose or type the farm name.', noMedia:'Add at least one photo/video.',
+        err:'Error saving: ',
+        emailHeading:'Link email (optional)', emailHint:'Your email identifies you in the TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.',
+        emailLabel:'Your email', emailButton:'Link email', emailLinkedLabel:'Email linked:', emailUnlinkButton:'Unlink email',
+        emailUnlinkConfirm:'Unlink this email? Your digital signature on this browser will be removed.',
+        emailUnlinked:'Email unlinked. Your digital signature was removed from this browser.',
+        emailRequired:'Please enter an email.', emailSending:'Sending...', emailSent:'Check your email to confirm the link.',
+        emailVerifying:'Confirming your email...', emailVerified:'Email confirmed successfully!', emailError:'Error: ',
+        requestHeading:'Request sent (signed)', responseHeading:'Server response',
+        downloadHeading:'Download the Android app', downloadHint:'Prefer the native app? Works offline and stores records on your phone.', downloadButton:'Download APK (Android)'
       }
     };
+    let currentLang = localStorage.getItem('sunmint_lang') || 'pt';
     const t = (k) => {
-      const lang = 'pt-BR';
-      return (STRINGS[lang] && STRINGS[lang][k]) || STRINGS['pt-BR'][k];
+      return (STRINGS[currentLang] && STRINGS[currentLang][k]) || STRINGS['pt'][k] || k;
     };
 
     function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('sunmint_lang', lang);
+      document.documentElement.lang = lang;
+      document.getElementById('langPt').classList.toggle('active', lang === 'pt');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         const val = t(key);
@@ -236,6 +306,95 @@
       });
     }
 
+    // ── RSA identity + email linking (mirrors main app) ──
+    const EDGAR_BASE = 'https://edgar.truesight.me';
+    const EDGAR_SUBMIT_URL = EDGAR_BASE + '/dao/submit_contribution';
+    function arrayBufferToBase64(buffer) {
+      let binary = ''; const bytes = new Uint8Array(buffer);
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return window.btoa(binary);
+    }
+    function base64ToArrayBuffer(base64) {
+      const binary = window.atob(base64); const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+    async function ensureKeyPair() {
+      let publicKey = localStorage.getItem('publicKey');
+      let privateKey = localStorage.getItem('privateKey');
+      if (publicKey && privateKey) return { publicKey, privateKey };
+      const keyPair = await window.crypto.subtle.generateKey(
+        { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
+      const publicKeyRaw = await window.crypto.subtle.exportKey('spki', keyPair.publicKey);
+      const privateKeyRaw = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+      publicKey = arrayBufferToBase64(publicKeyRaw); privateKey = arrayBufferToBase64(privateKeyRaw);
+      localStorage.setItem('publicKey', publicKey); localStorage.setItem('privateKey', privateKey);
+      return { publicKey, privateKey };
+    }
+    async function signText(privateKeyBase64, text) {
+      const privateKeyObj = await window.crypto.subtle.importKey('pkcs8', base64ToArrayBuffer(privateKeyBase64),
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+      const encoder = new TextEncoder();
+      const signature = await window.crypto.subtle.sign('RSASSA-PKCS1-v1_5', privateKeyObj, encoder.encode(text));
+      return arrayBufferToBase64(signature);
+    }
+    function renderSubmissionResult(shareText, responseData) {
+      document.getElementById('requestPre').textContent = shareText;
+      document.getElementById('responsePre').textContent = JSON.stringify(responseData, null, 2);
+      document.getElementById('submissionResult').style.display = 'block';
+    }
+    async function submitEmailEvent(eventName, attributes) {
+      const { publicKey, privateKey } = await ensureKeyPair();
+      const attrLines = Object.entries(attributes).map(([k, v]) => '- ' + k + ': ' + v).join('\n');
+      const requestText = '[' + eventName + ']\n' + attrLines + '\n--------';
+      const signature = await signText(privateKey, requestText);
+      const shareText = requestText + '\n\nMy Digital Signature: ' + publicKey +
+        '\n\nRequest Transaction ID: ' + signature +
+        '\n\nThis submission was generated using ' + window.location.href +
+        '\n\nVerify submission here: https://dapp.truesight.me/verify_request.html';
+      const formData = new FormData();
+      formData.append('text', shareText);
+      const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+      const rawText = await resp.text();
+      let data = {};
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch (_) { data = {}; }
+      if (!resp.ok) throw new Error((data && data.error) || rawText || ('HTTP ' + resp.status));
+      renderSubmissionResult(shareText, data);
+      return data;
+    }
+    function getLinkedEmail() { return localStorage.getItem('sunmint_linked_email') || ''; }
+    function renderEmailSection() {
+      const linked = getLinkedEmail();
+      const unlinkedEl = document.getElementById('emailUnlinked');
+      const linkedEl = document.getElementById('emailLinked');
+      if (!unlinkedEl || !linkedEl) return;
+      unlinkedEl.style.display = linked ? 'none' : '';
+      linkedEl.style.display = linked ? '' : 'none';
+      document.getElementById('linkedEmailDisplay').textContent = linked;
+    }
+    async function submitEmailLink() {
+      const statusEl = document.getElementById('status');
+      const email = document.getElementById('emailInput').value.trim();
+      if (!email) { statusEl.textContent = t('emailRequired'); statusEl.className = 'error'; return; }
+      const btn = document.getElementById('emailSubmitBtn');
+      btn.disabled = true; statusEl.className = ''; statusEl.textContent = t('emailSending');
+      try {
+        await submitEmailEvent('EMAIL REGISTERED EVENT', { Email: email });
+        statusEl.textContent = t('emailSent'); statusEl.className = 'success';
+      } catch (err) {
+        statusEl.textContent = t('emailError') + err.message; statusEl.className = 'error';
+      } finally { btn.disabled = false; }
+    }
+    function unlinkEmail() {
+      if (!confirm(t('emailUnlinkConfirm'))) return;
+      localStorage.removeItem('publicKey');
+      localStorage.removeItem('privateKey');
+      localStorage.removeItem('sunmint_linked_email');
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = t('emailUnlinked'); statusEl.className = 'success';
+      renderEmailSection();
+    }
+
     // ── submit ──
     async function submitBoundary() {
       const status = document.getElementById('status');
@@ -286,10 +445,12 @@
       const select = document.getElementById('pageNav');
       if (select.value === 'plant') window.location.href = '/';
       else if (select.value === 'monitor') window.location.href = '/monitor-tree-growth/';
+      else if (select.value === 'farm') window.location.href = '/register_farm/';
       else if (select.value === 'instrucoes') window.location.href = '/instrucoes/';
     }
 
-    setLang('pt-BR');
+    setLang(currentLang);
+    renderEmailSection();
     updatePendingBadge();
   </script>
 
