@@ -4,7 +4,7 @@ Locks in the standardized nav dropdown (PR #59) so every page on
 sunmint.truesight.me renders the same dropdown UI:
   - exactly one .nav-dropdown with #pageNav select per page
   - reference CSS: centered, margin-bottom 1rem, select max-width 300px inline-block
-  - all 5 nav options present (plant/monitor/farm/limites/instrucoes)
+  - all 4 nav options present (plant/monitor/limites/instrucoes)
   - the page's own option is selected
   - onNavChange defined and routes every option
   - pt + en i18n keys present for every nav option
@@ -21,16 +21,14 @@ PAGES = [
     "monitor-tree-growth/index.html",
     "instrucoes/index.html",
     "limites-da-fazenda/index.html",
-    "register_farm/index.html",
 ]
-NAV_OPTIONS = ["plant", "monitor", "farm", "limites", "instrucoes"]
+NAV_OPTIONS = ["plant", "monitor", "limites", "instrucoes"]
 # page -> the option that should be selected on it
 EXPECTED_SELECTED = {
     "index.html": "plant",
     "monitor-tree-growth/index.html": "monitor",
     "instrucoes/index.html": "instrucoes",
     "limites-da-fazenda/index.html": "limites",
-    "register_farm/index.html": "farm",
 }
 REFERENCE_CSS = {
     ".nav-dropdown": ["margin-bottom: 1rem", "text-align: center"],
@@ -90,12 +88,8 @@ class TestNavUI(unittest.TestCase):
             for opt in NAV_OPTIONS:
                 self.assertRegex(html, r'["\']' + opt + r'["\']', page)
 
-    # register_farm uses the Google-Translate engine (setLang -> setLanguage),
-    # so it has no JS nav dict — exempt from the dict assertion.
-    DICT_PAGES = [p for p in PAGES if p != "register_farm/index.html"]
-
     def test_i18n_nav_keys_in_pt_and_en(self):
-        for page in self.DICT_PAGES:
+        for page in PAGES:
             html = read(page)
             for opt in NAV_OPTIONS:
                 key = f"nav{opt.capitalize()}"

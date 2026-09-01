@@ -142,7 +142,6 @@
       <option value="plant" data-i18n="navPlant">Registrar Plantio</option>
       <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
       <option value="limites" data-i18n="navLimites">Limites da Fazenda</option>
-      <option value="farm" data-i18n="navFarm">Registrar Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes" selected>Instruções</option>
     </select>
   </div>
@@ -209,7 +208,6 @@
         navMonitor: "Monitorar Árvore",
         navInstrucoes: "Instruções",
         navLimites: "Limites da Fazenda",
-        navFarm: "Registrar Fazenda",
         title: "Instruções",
         intro: "Como enviar fotos e vídeos da fazenda de um jeito que preserva a localização (GPS).",
         sec1Title: "1. Envie como ARQUIVO, não como foto",
@@ -245,7 +243,6 @@
         navMonitor: "Monitor Tree",
         navInstrucoes: "Instructions",
         navLimites: "Farm Boundaries",
-        navFarm: "Register Farm",
         title: "Instructions",
         intro: "How to send farm photos and videos in a way that preserves the location (GPS).",
         sec1Title: "1. Send as a FILE, not as a photo",
@@ -302,8 +299,6 @@
         window.location.href = '/monitor-tree-growth/';
       } else if (select.value === 'limites') {
         window.location.href = '/limites-da-fazenda/';
-      } else if (select.value === 'farm') {
-        window.location.href = '/register_farm/';
       } else {
         window.location.href = '/instrucoes/';
       }
