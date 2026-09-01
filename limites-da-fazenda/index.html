@@ -72,7 +72,6 @@
     <select id="pageNav" onchange="onNavChange()">
       <option value="plant" data-i18n="navPlant">Registrar Plantio</option>
       <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
-      <option value="farm" data-i18n="navFarm">Registrar Fazenda</option>
       <option value="limites" data-i18n="navLimites" selected>Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
     </select>
@@ -158,7 +157,7 @@
 
     const STRINGS = {
       'pt': {
-        navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navFarm:'Registrar Fazenda', navLimites:'Limites da Fazenda', navInstrucoes:'Instruções',
+        navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navLimites:'Limites da Fazenda', navInstrucoes:'Instruções',
         bHeading:'Enviar fotos dos limites da fazenda', bHint:'Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.',
         farmLabel:'Fazenda:', farmLoading:'Carregando fazendas...', newFarmLabel:'Nome da nova fazenda:', newFarmPh:'Ex: Sítio São João',
         photoLabel:'Fotos/vídeos dos limites:', submitLabel:'Enviar limites',
@@ -177,7 +176,7 @@
         downloadHeading:'Baixe o aplicativo Android', downloadHint:'Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.', downloadButton:'Baixar APK (Android)'
       },
       'en': {
-        navPlant:'Register Planting', navMonitor:'Monitor Tree', navFarm:'Register Farm', navLimites:'Farm Boundaries', navInstrucoes:'Instructions',
+        navPlant:'Register Planting', navMonitor:'Monitor Tree', navLimites:'Farm Boundaries', navInstrucoes:'Instructions',
         bHeading:'Send farm boundary photos', bHint:'Walk the farm corners (post, fence, roadside) and take photos. The photo GPS marks the boundary.',
         farmLabel:'Farm:', farmLoading:'Loading farms...', newFarmLabel:'New farm name:', newFarmPh:'E.g. Sítio São João',
         photoLabel:'Boundary photos/videos:', submitLabel:'Send boundaries',
@@ -590,6 +589,41 @@
     }
 
     // ── submit ──
+    async function buildBoundaryShareText(farmName, isNewFarm) {
+      const { publicKey, privateKey } = await ensureKeyPair();
+      const attrs = {
+        'Farm Name': farmName,
+        'Is New Farm': isNewFarm ? 'yes' : 'no',
+        'Media URLs': selectedFiles.map(f => f.name).join('; '),
+        'Media Count': String(selectedFiles.length),
+        'Captured At': new Date().toISOString(),
+        'Device GPS': JSON.stringify(await getDeviceGps()),
+        'Submission Source': 'sunmint-limites-da-fazenda'
+      };
+      const attrLines = Object.entries(attrs).map(([k, v]) => '- ' + k + ': ' + v).join('\n');
+      const requestText = '[FARM BOUNDARY EVIDENCE EVENT]\n' + attrLines + '\n--------';
+      const signature = await signText(privateKey, requestText);
+      return requestText + '\n\nMy Digital Signature: ' + publicKey +
+        '\n\nRequest Transaction ID: ' + signature +
+        '\n\nThis submission was generated using ' + window.location.href +
+        '\n\nVerify submission here: https://dapp.truesight.me/verify_request.html';
+    }
+    async function uploadBoundary(record) {
+      const formData = new FormData();
+      formData.append('text', record.shareText);
+      for (const m of (record.mediaBlobs || [])) {
+        formData.append('attachment', m.blob, m.name);
+      }
+      const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+      const rawText = await resp.text();
+      let data = {};
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch (_) { data = {}; }
+      // 409 = Edgar already processed this exact signed request — treat as success.
+      if (!resp.ok && resp.status !== 409) {
+        throw new Error((data && data.error) || rawText || ('HTTP ' + resp.status));
+      }
+      return data;
+    }
     async function submitBoundary() {
       const status = document.getElementById('status');
       const farmSel = document.getElementById('farmSelect');
@@ -612,18 +646,73 @@
         status: 'queued'
       };
       try {
+        const shareText = await buildBoundaryShareText(farmName, record.is_new_farm);
+        record.shareText = shareText;
+        record.mediaBlobs = selectedFiles.map(f => ({ name: f.name, blob: f }));
+        const online = navigator.onLine;
+        if (online) {
+          try {
+            await uploadBoundary(record);
+            status.className = 'ok';
+            status.textContent = t('saved');
+            resetBoundaryForm();
+            updatePendingBadge();
+            return;
+          } catch (_) {
+            // online but upload failed — fall through to queue (retry on reconnect)
+          }
+        }
         await queueBoundary(record);
         status.className = 'ok';
-        status.textContent = navigator.onLine ? t('saved') : t('queued');
-        selectedFiles = [];
-        document.getElementById('photoInput').value = '';
-        document.getElementById('photoThumbs').innerHTML = '';
+        status.textContent = t('queued');
+        resetBoundaryForm();
         updatePendingBadge();
       } catch (e) {
         status.className = 'err';
         status.textContent = t('err') + e.message;
       }
     }
+    function resetBoundaryForm() {
+      selectedFiles = [];
+      document.getElementById('photoInput').value = '';
+      document.getElementById('photoThumbs').innerHTML = '';
+    }
+    async function getPendingBoundary() {
+      const db = await openQueueDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(BOUNDARY_QUEUE_STORE, 'readonly');
+        const req = tx.objectStore(BOUNDARY_QUEUE_STORE).getAll();
+        req.onsuccess = () => resolve((req.result || []).filter(r => !r.uploaded));
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function markBoundaryUploaded(id) {
+      const db = await openQueueDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(BOUNDARY_QUEUE_STORE, 'readwrite');
+        const store = tx.objectStore(BOUNDARY_QUEUE_STORE);
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const rec = getReq.result;
+          if (rec) { rec.uploaded = true; rec.uploadedAt = new Date().toISOString(); store.put(rec); }
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+    async function flushBoundaryQueue() {
+      let pending;
+      try { pending = await getPendingBoundary(); } catch (_) { return; }
+      if (!pending.length) return;
+      for (const record of pending) {
+        try {
+          await uploadBoundary(record);
+          await markBoundaryUploaded(record.id);
+        } catch (_) { /* offline — leave queued */ }
+      }
+      updatePendingBadge();
+    }
+
     function getDeviceGps() {
       return new Promise((resolve) => {
         if (!navigator.geolocation) return resolve(null);
@@ -639,7 +728,6 @@
       const select = document.getElementById('pageNav');
       if (select.value === 'plant') window.location.href = '/';
       else if (select.value === 'monitor') window.location.href = '/monitor-tree-growth/';
-      else if (select.value === 'farm') window.location.href = '/register_farm/';
       else if (select.value === 'limites') window.location.href = '/limites-da-fazenda/';
       else if (select.value === 'instrucoes') window.location.href = '/instrucoes/';
     }
@@ -647,6 +735,8 @@
     setLang(currentLang);
     renderEmailSection();
     updatePendingBadge();
+    flushBoundaryQueue();
+    window.addEventListener('online', flushBoundaryQueue);
   </script>
 
   <!-- Offline support: network-first service worker -->
