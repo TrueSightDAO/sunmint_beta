@@ -36,6 +36,12 @@
     .photo-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .photo-thumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
     .card { background: #fff; border-radius: 8px; padding: 1rem; margin: 14px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  
+    .media-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 14px; }
+    .media-cell { width: 64px; height: 64px; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; }
+    .media-cell img { width: 100%; height: 100%; object-fit: cover; }
+    #mediaList { margin-bottom: 14px; }
+    #mediaList h3 { margin: 8px 0 4px; }
   </style>
 </head>
 <body>
@@ -71,6 +77,8 @@
         <label for="newFarmName" data-i18n="newFarmLabel">Nome da nova fazenda:</label>
         <input type="text" id="newFarmName" placeholder="Ex: Sítio São João" data-i18n-placeholder="newFarmPh">
       </div>
+
+      <div id="mediaList" style="display:none;"></div>
 
       <label for="photoInput" data-i18n="photoLabel">Fotos/vídeos dos limites:</label>
       <input type="file" id="photoInput" accept="image/*,video/*" multiple capture="environment">
@@ -124,7 +132,8 @@
         bHeading:'Enviar fotos dos limites da fazenda', bHint:'Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.',
         farmLabel:'Fazenda:', farmLoading:'Carregando fazendas...', newFarmLabel:'Nome da nova fazenda:', newFarmPh:'Ex: Sítio São João',
         photoLabel:'Fotos/vídeos dos limites:', submitLabel:'Enviar limites',
-        farmSelectPh:'Selecione uma fazenda', newFarmOpt:'➕ Nova fazenda...', emptyFarms:'Nenhuma fazenda ainda — escolha "Nova fazenda"',
+        farmSelectPh:'Selecione uma fazenda',
+        mediaLoading:'Carregando m\u00eddias do plot...', mediaUnavailable:'N\u00e3o foi poss\u00edvel carregar as m\u00eddias.', mediaNone:'Nenhuma m\u00eddia de limite registrada para esta fazenda ainda.', mediaItems:'m\u00eddias', newFarmOpt:'➕ Nova fazenda...', emptyFarms:'Nenhuma fazenda ainda — escolha "Nova fazenda"',
         saved:'✅ Limites enviados (fila local). Enviará quando houver conexão.', queued:'⏳ Na fila offline — aguardando conexão.',
         noFarm:'Escolha ou digite o nome da fazenda.', noMedia:'Adicione pelo menos uma foto/vídeo.',
         err:'Erro ao salvar: ',
@@ -142,7 +151,8 @@
         bHeading:'Send farm boundary photos', bHint:'Walk the farm corners (post, fence, roadside) and take photos. The photo GPS marks the boundary.',
         farmLabel:'Farm:', farmLoading:'Loading farms...', newFarmLabel:'New farm name:', newFarmPh:'E.g. Sítio São João',
         photoLabel:'Boundary photos/videos:', submitLabel:'Send boundaries',
-        farmSelectPh:'Select a farm', newFarmOpt:'➕ New farm...', emptyFarms:'No farms yet — choose "New farm"',
+        farmSelectPh:'Select a farm',
+        mediaLoading:'Loading plot media...', mediaUnavailable:'Could not load media.', mediaNone:'No boundary media recorded for this farm yet.', mediaItems:'media items', newFarmOpt:'➕ New farm...', emptyFarms:'No farms yet — choose "New farm"',
         saved:'✅ Boundaries queued locally. Will send when online.', queued:'⏳ Offline queue — waiting for connection.',
         noFarm:'Choose or type the farm name.', noMedia:'Add at least one photo/video.',
         err:'Error saving: ',
@@ -180,6 +190,14 @@
         if (k && t(k)) o.textContent = t(k);
       });
       renderFarmSelect();
+      const params = new URLSearchParams(location.search);
+      const f = (params.get('farm') || '').trim();
+      if (f) {
+        const sel = document.getElementById('farmSelect');
+        const hit = Array.from(sel.options || []).find(o => o.value && o.value.toLowerCase() === f.toLowerCase());
+        if (hit) { sel.value = hit.value; onFarmSelectChange(); }
+        else { renderMediaList(f); }
+      }
     }
 
     // ── device-local farm store (IndexedDB) ──
@@ -244,9 +262,63 @@
     function onFarmSelectChange() {
       const sel = document.getElementById('farmSelect');
       document.getElementById('newFarmWrap').style.display = (sel.value === '__new__') ? 'block' : 'none';
+      if (sel.value && sel.value !== '__new__') {
+        history.pushState(null, '', '?farm=' + encodeURIComponent(sel.value));
+      } else if (sel.value === '') {
+        history.pushState(null, '', location.pathname);
+      }
+      renderMediaList(sel.value);
     }
     function esc(s) {
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // -- media submissions used to plot the selected farm --
+    const PLOTS_URL = 'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/plots/index.geojson';
+    const MEDIA_CDN = 'https://cdn.jsdelivr.net/gh/TrueSightDAO/sunmint@main/';
+    async function renderMediaList(farmName) {
+      const box = document.getElementById('mediaList');
+      if (!farmName || farmName === '__new__') { box.innerHTML = ''; box.style.display = 'none'; return; }
+      box.style.display = 'block';
+      box.innerHTML = '<p class="hint">' + t('mediaLoading') + '</p>';
+      let farmId = null;
+      try {
+        const res = await fetch(REMOTE_FARMS_URL + '?cb=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) { const d = await res.json(); const arr = Array.isArray(d) ? d : (d.farms || []);
+          const hit = arr.find(x => x && (x.name||'').toLowerCase() === farmName.toLowerCase());
+          if (hit) farmId = hit.farm_id; }
+      } catch (e) {}
+      try {
+        const res = await fetch(PLOTS_URL + '?cb=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) { box.innerHTML = '<p class="hint">' + t('mediaUnavailable') + '</p>'; return; }
+        const g = await res.json();
+        const nameL = farmName.toLowerCase();
+        const plots = (g.features || []).filter(f => {
+          const p = f.properties || {};
+          return (farmId && p.farm_id === farmId) || (p.farm && String(p.farm).toLowerCase() === nameL);
+        });
+        let total = 0;
+        plots.forEach(pl => { total += (pl.properties.media || []).length; });
+        if (!total) { box.innerHTML = '<p class="hint">' + t('mediaNone') + '</p>'; return; }
+        let html = '<h3>' + esc(farmName) + '</h3>';
+        plots.forEach(pl => {
+          const p = pl.properties || {};
+          const items = p.media || [];
+          if (!items.length) return;
+          html += '<p class="hint"><strong>' + esc(p.plot_id || p.id || '') + '</strong> &mdash; ' + items.length + ' ' + t('mediaItems') + '</p>';
+          html += '<div class="media-grid">';
+          items.forEach(m => {
+            const src = (typeof m === 'object' && m.url) ? m.url : String(m);
+            const cdnsrc = src.startsWith('http') ? src : MEDIA_CDN + src;
+            const raw = src.startsWith('http') ? src : 'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/' + src;
+            html += '<div class="media-cell"><img loading="lazy" src="' + esc(cdnsrc) + '" onerror="this.onerror=null;this.src=\'' + esc(raw) + '\';" alt="' + esc(src) + '"/></div>';
+          });
+          html += '</div>';
+        });
+        box.innerHTML = html;
+      } catch (e) {
+        box.innerHTML = '<p class="hint">' + t('mediaUnavailable') + '</p>';
+      }
     }
 
     // ── photo previews ──
