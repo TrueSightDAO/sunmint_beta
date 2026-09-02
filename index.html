@@ -276,6 +276,10 @@
       <button type="button" class="camera-btn" id="captureBtn" onclick="capturePhoto()" data-i18n="captureButton">Tirar foto</button>
       <button type="button" class="camera-btn secondary" id="retakeBtn" onclick="retakePhoto()" style="display:none;" data-i18n="retakeButton">Tirar outra</button>
     </div>
+    <div class="camera-row">
+      <input type="file" id="treePhotoFile" accept="image/*" style="display:none;">
+      <button type="button" class="camera-btn secondary" id="uploadPhotoBtn" onclick="document.getElementById('treePhotoFile').click()" data-i18n="uploadButton">Enviar foto da galeria</button>
+    </div>
     <div id="cameraStatus" class="hint" aria-live="polite"></div>
 
     <button class="submit-btn" id="treeSubmitBtn" onclick="submitTreePlanting()" data-i18n="treeButton">Enviar registro</button>
@@ -354,6 +358,10 @@
         cameraUnsupported: "Câmera não disponível neste navegador.",
         cameraError: "Erro ao acessar a câmera: ",
         photoCaptured: "Foto capturada.",
+        uploadButton: "Enviar foto da galeria",
+        photoUploaded: "Foto carregada da galeria.",
+        photoGpsFound: "GPS da foto usado para localiza\u00e7\u00e3o.",
+        photoGpsMissing: "GPS n\u00e3o encontrado na foto \u2014 usando localiza\u00e7\u00e3o do aparelho (se dispon\u00edvel).",
         treeButton: "Enviar registro",
         requestHeading: "Pedido enviado (assinado)",
         responseHeading: "Resposta do servidor",
@@ -409,6 +417,10 @@
         cameraUnsupported: "Camera not available in this browser.",
         cameraError: "Error accessing camera: ",
         photoCaptured: "Photo captured.",
+        uploadButton: "Choose from gallery",
+        photoUploaded: "Photo loaded from gallery.",
+        photoGpsFound: "Photo GPS used for location.",
+        photoGpsMissing: "No GPS found in photo \u2014 using device location (if available)."
         treeButton: "Submit report",
         requestHeading: "Signed request sent",
         responseHeading: "Server response",
@@ -623,11 +635,18 @@
     // failure, rescan on load) is the same shape.
     let latitude = null;
     let longitude = null;
+    let locationSource = null; // 'photo' | 'device' | null
 
     function requestLocation() {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
-        (pos) => { latitude = pos.coords.latitude; longitude = pos.coords.longitude; },
+        (pos) => {
+          if (locationSource !== 'photo') {
+            latitude = pos.coords.latitude;
+            longitude = pos.coords.longitude;
+            locationSource = 'device';
+          }
+        },
         () => { /* optional — submission proceeds without location */ },
         { timeout: 8000 }
       );
@@ -768,6 +787,124 @@
       return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
+    // Gallery photo option (governor-approved): the farmer may either use the
+    // live camera (above) or pick a photo from the gallery. If the chosen photo
+    // carries EXIF GPS, those coordinates take priority; otherwise the phone's
+    // geolocation (requestLocation) is used as fallback.
+    function readExifGps(file) {
+      return new Promise((resolve) => {
+        if (!file || (file.type || '').indexOf('image/jpeg') === -1) return resolve(null);
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const dv = new DataView(reader.result);
+            if (dv.getUint16(0, false) !== 0xFFD8) return resolve(null);
+            let off = 2;
+            let tiff = null;
+            while (off + 4 < dv.byteLength) {
+              if (dv.getUint8(off) !== 0xFF) { off++; continue; }
+              const marker = dv.getUint8(off + 1);
+              if (marker === 0xDA || marker === 0xD9) break;
+              const len = dv.getUint16(off + 2, false);
+              if (marker === 0xE1 && len >= 14 && tiff === null) {
+                const head = String.fromCharCode(dv.getUint8(off+4),dv.getUint8(off+5),dv.getUint8(off+6),dv.getUint8(off+7),dv.getUint8(off+8),dv.getUint8(off+9));
+                if (head === 'Exif\x00\x00') { tiff = off + 10; break; }
+              }
+              off += 2 + len;
+            }
+            if (tiff === null) return resolve(null);
+            const little = dv.getUint16(tiff, false) === 0x4949;
+            const u16 = (o) => dv.getUint16(o, little);
+            const u32 = (o) => dv.getUint32(o, little);
+            if (u16(tiff + 2) !== 0x002A) return resolve(null);
+            const ifd0 = tiff + u32(tiff + 4);
+            const n0 = u16(ifd0);
+            let gpsIfd = null;
+            for (let i = 0; i < n0; i++) {
+              const e = ifd0 + 2 + i * 12;
+              if (u16(e) === 0x8825) { gpsIfd = tiff + u32(e + 8); break; }
+            }
+            if (gpsIfd === null) return resolve(null);
+            const readRat = (o) => {
+              const num = u32(o), den = u32(o + 4);
+              return den === 0 ? null : num / den;
+            };
+            const gps = { lat: null, lng: null, latRef: '', lngRef: '' };
+            const gn = u16(gpsIfd);
+            for (let i = 0; i < gn; i++) {
+              const e = gpsIfd + 2 + i * 12;
+              const tag = u16(e);
+              if (tag === 1) { gps.latRef = String.fromCharCode(dv.getUint8(e+8)); }
+              else if (tag === 2) {
+                const d = readRat(e+8), m = readRat(e+12), s = readRat(e+16);
+                if (d !== null && m !== null && s !== null) gps.lat = d + m/60 + s/3600;
+              } else if (tag === 3) { gps.lngRef = String.fromCharCode(dv.getUint8(e+8)); }
+              else if (tag === 4) {
+                const d = readRat(e+8), m = readRat(e+12), s = readRat(e+16);
+                if (d !== null && m !== null && s !== null) gps.lng = d + m/60 + s/3600;
+              }
+            }
+            if (gps.lat === null || gps.lng === null) return resolve(null);
+            if (gps.latRef === 'S') gps.lat = -gps.lat;
+            if (gps.lngRef === 'W') gps.lng = -gps.lng;
+            if (gps.lat < -90 || gps.lat > 90 || gps.lng < -180 || gps.lng > 180) return resolve(null);
+            resolve({ lat: gps.lat, lng: gps.lng });
+          } catch (_) { resolve(null); }
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsArrayBuffer(file);
+      });
+    }
+    function downscaleImage(file, maxDim) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob((b) => b ? resolve(b) : resolve(file), 'image/jpeg', 0.85);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')); };
+        img.src = url;
+      });
+    }
+    async function handleTreePhotoFile(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const cameraStatus = document.getElementById('cameraStatus');
+      try {
+        const gps = await readExifGps(file);
+        if (cameraStream) { cameraStream.getTracks().forEach((tr) => tr.stop()); cameraStream = null; }
+        const video = document.getElementById('treeCameraPreview');
+        if (video) video.style.display = 'none';
+        const preview = document.getElementById('treePhotoPreview');
+        if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+        const blob = await downscaleImage(file, 1600);
+        capturedPhotoBlob = blob;
+        const url = URL.createObjectURL(blob);
+        preview.src = url;
+        preview.dataset.objectUrl = url;
+        preview.style.display = 'block';
+        document.getElementById('captureBtn').style.display = 'none';
+        document.getElementById('retakeBtn').style.display = 'block';
+        cameraStatus.className = 'success';
+        if (gps) {
+          latitude = gps.lat; longitude = gps.lng; locationSource = 'photo';
+          cameraStatus.textContent = t('photoUploaded') + ' ' + t('photoGpsFound');
+        } else {
+          cameraStatus.textContent = t('photoUploaded') + ' ' + t('photoGpsMissing');
+        }
+      } catch (err) {
+        cameraStatus.textContent = t('cameraError') + err.message;
+        cameraStatus.className = 'error';
+      }
+    }
+    document.getElementById('treePhotoFile').addEventListener('change', handleTreePhotoFile);
     async function startTreeCamera() {
       const video = document.getElementById('treeCameraPreview');
       const cameraStatus = document.getElementById('cameraStatus');
@@ -827,6 +964,8 @@
 
     function retakePhoto() {
       capturedPhotoBlob = null;
+      const fileIn = document.getElementById('treePhotoFile');
+      if (fileIn) fileIn.value = '';
       const preview = document.getElementById('treePhotoPreview');
       if (preview.dataset.objectUrl) {
         URL.revokeObjectURL(preview.dataset.objectUrl);
