@@ -193,6 +193,8 @@
       <img id="closeupPreview" class="photo-preview" style="display:none;">
       <button type="button" class="camera-btn" id="closeupBtn" onclick="capturePhoto('closeup')" data-i18n="closeupButton">Tirar foto</button>
       <button type="button" class="camera-btn secondary" id="closeupRetakeBtn" onclick="retakeCloseup()" style="display:none;" data-i18n="retakeButton">Tirar outra</button>
+      <input type="file" id="closeupFile" accept="image/*" style="display:none;">
+      <button type="button" class="camera-btn secondary" id="closeupGalleryBtn" onclick="document.getElementById('closeupFile').click()" data-i18n="galleryButton">Enviar da galeria</button>
     </div>
     <div class="photo-panel" id="panel-context" hidden>
       <p class="hint" data-i18n="contextHint">Enquadre a árvore inteira e tire a foto de contexto.</p>
@@ -200,6 +202,8 @@
       <img id="contextPreview" class="photo-preview" style="display:none;">
       <button type="button" class="camera-btn" id="contextBtn" onclick="capturePhoto('context')" data-i18n="contextButton">Tirar foto</button>
       <button type="button" class="camera-btn secondary" id="contextRetakeBtn" onclick="retakeContext()" style="display:none;" data-i18n="retakeButton2">Tirar outra</button>
+      <input type="file" id="contextFile" accept="image/*" style="display:none;">
+      <button type="button" class="camera-btn secondary" id="contextGalleryBtn" onclick="document.getElementById('contextFile').click()" data-i18n="galleryButton">Enviar da galeria</button>
     </div>
     </div>
 
@@ -258,6 +262,7 @@
         contextLabel: 'Foto de contexto (árvore inteira)',
         contextButton: 'Tirar foto de contexto',
         retakeButton2: 'Tirar outra',
+        galleryButton: 'Enviar da galeria',
         cameraStarting: 'Ativando câmera…',
         cameraDenied: 'Permissão de câmera negada. Permita o acesso à câmera nas configurações do navegador e tente novamente.',
         cameraNotFound: 'Nenhuma câmera encontrada neste dispositivo.',
@@ -345,6 +350,7 @@
         contextLabel: 'Context photo (whole tree)',
         contextButton: 'Take context photo',
         retakeButton2: 'Retake',
+        galleryButton: 'Upload from gallery',
         cameraStarting: 'Starting camera…',
         cameraDenied: 'Camera permission denied. Allow camera access in your browser settings and try again.',
         cameraNotFound: 'No camera found on this device.',
@@ -822,6 +828,8 @@
     }
     function retakeCloseup() {
       closeupBlob = null;
+      const cf = document.getElementById('closeupFile');
+      if (cf) cf.value = '';
       document.getElementById('closeupPreview').style.display = 'none';
       document.getElementById('closeupBtn').style.display = 'inline-block';
       document.getElementById('closeupRetakeBtn').style.display = 'none';
@@ -831,6 +839,8 @@
     }
     function retakeContext() {
       contextBlob = null;
+      const cf = document.getElementById('contextFile');
+      if (cf) cf.value = '';
       document.getElementById('contextPreview').style.display = 'none';
       document.getElementById('contextBtn').style.display = 'inline-block';
       document.getElementById('contextRetakeBtn').style.display = 'none';
@@ -838,6 +848,55 @@
       updateSubmitState();
       startCamera('context');
     }
+    // Gallery photo option (governor-approved): the closeup & context photos may
+    // be uploaded from the gallery instead of captured live. Device GPS remains
+    // the location source for the 200m proximity gate (a gallery photo's EXIF
+    // GPS may be stale/wrong, so it is NOT used here).
+    function downscaleImage(file, maxDim) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob((b) => b ? resolve(b) : resolve(file), 'image/jpeg', 0.85);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')); };
+        img.src = url;
+      });
+    }
+    async function handleGalleryFile(mode, e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const statusEl = document.getElementById('treeStatus');
+      try {
+        const blob = await downscaleImage(file, 1600);
+        stopCamera();
+        const video = document.getElementById(mode + 'Video');
+        if (video) video.style.display = 'none';
+        if (mode === 'closeup') { closeupBlob = blob; } else { contextBlob = blob; }
+        const preview = document.getElementById(mode + 'Preview');
+        if (preview.src) URL.revokeObjectURL(preview.src);
+        preview.src = URL.createObjectURL(blob);
+        preview.style.display = 'block';
+        document.getElementById(mode + 'Btn').style.display = 'none';
+        document.getElementById(mode + 'RetakeBtn').style.display = 'inline-block';
+        markTabDone(mode);
+        updateSubmitState();
+        statusEl.textContent = '';
+        statusEl.className = '';
+      } catch (err) {
+        statusEl.textContent = t('monitorError') + err.message;
+        statusEl.className = 'error';
+      }
+    }
+    document.getElementById('closeupFile').addEventListener('change', (e) => handleGalleryFile('closeup', e));
+    document.getElementById('contextFile').addEventListener('change', (e) => handleGalleryFile('context', e));
 
     // ── offline queue (sunmint_beta pattern) ──────────────────────────
     function getPending() {
