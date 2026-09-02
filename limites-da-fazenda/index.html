@@ -106,6 +106,18 @@
           <div id="retractStatus"></div>
         </div>
       </div>
+      <div id="plotInvalidateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99;align-items:center;justify-content:center;">
+        <div class="modal-box" style="background:#fff;border-radius:8px;padding:16px;max-width:420px;width:92%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+          <h4 id="plotInvalidateModalTitle" style="margin:0 0 6px;"></h4>
+          <p id="plotInvalidateModalMeta" class="hint" style="margin:0 0 8px;word-break:break-all;"></p>
+          <textarea id="plotInvalidateReason" placeholder="" style="width:100%;box-sizing:border-box;min-height:64px;border:1px solid #ccc;border-radius:4px;padding:6px;font-family:inherit;"></textarea>
+          <div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+            <button class="btn-cancel" style="background:#eee;color:#333;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;" onclick="closePlotInvalidateModal()"></button>
+            <button class="btn-confirm" style="background:#e57373;color:#fff;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;" onclick="confirmPlotInvalidation()"></button>
+          </div>
+          <div id="plotInvalidateStatus" style="margin-top:8px;font-size:12px;"></div>
+        </div>
+      </div>
 
       <label for="photoInput" data-i18n="photoLabel">Fotos/vídeos dos limites:</label>
       <input type="file" id="photoInput" accept="image/*,video/*" multiple>
@@ -162,7 +174,7 @@
         farmLabel:'Lote:', farmLoading:'Carregando lotes...', newFarmLabel:'Nome do novo lote:', newFarmPh:'Ex: Sítio São João',
         photoLabel:'Fotos/vídeos dos limites:', submitLabel:'Enviar limites',
         farmSelectPh:'Selecione uma fazenda',
-        mediaLoading:'Carregando m\u00eddias do plot...', mediaUnavailable:'N\u00e3o foi poss\u00edvel carregar as m\u00eddias.', mediaNone:'Nenhuma m\u00eddia de limite registrada para este lote ainda.', mediaItems:'m\u00eddias', invalidar:'Invalidar', invalidado:'invalidado', sentinelBadge:'invalidado pelo Sentinel', retractTitle:'Invalidar m\u00eddia de limite', retractReasonPh:'Por que esta m\u00eddia deve ser invalidada?', retractCancel:'Cancelar', retractConfirm:'Enviar retrata\u00e7\u00e3o', reasonRequired:'Escreva um motivo.', retractionQueued:'Retrata\u00e7\u00e3o salva offline \u2014 ser\u00e1 enviada quando houver conex\u00e3o.', retractionSent:'Retrata\u00e7\u00e3o enviada \u2014 aguarde o processamento.', retractionErr:'Falha ao enviar retrata\u00e7\u00e3o.', noEmailForRetract:'Vincule seu email acima para poder invalidar m\u00eddias.', newFarmOpt:'➕ Novo lote...', emptyFarms:'Nenhum lote ainda — escolha "Novo lote"',
+        mediaLoading:'Carregando m\u00eddias do plot...', mediaUnavailable:'N\u00e3o foi poss\u00edvel carregar as m\u00eddias.', mediaNone:'Nenhuma m\u00eddia de limite registrada para este lote ainda.', mediaItems:'m\u00eddias', invalidar:'Invalidar', invalidado:'invalidado', sentinelBadge:'invalidado pelo Sentinel', retractTitle:'Invalidar m\u00eddia de limite', retractReasonPh:'Por que esta m\u00eddia deve ser invalidada?', retractCancel:'Cancelar', retractConfirm:'Enviar retrata\u00e7\u00e3o', reasonRequired:'Escreva um motivo.', retractionQueued:'Retrata\u00e7\u00e3o salva offline \u2014 ser\u00e1 enviada quando houver conex\u00e3o.', retractionSent:'Retrata\u00e7\u00e3o enviada \u2014 aguarde o processamento.', retractionErr:'Falha ao enviar retrata\u00e7\u00e3o.', noEmailForRetract:'Vincule seu email acima para poder invalidar m\u00eddias.', plotInvalidate:'Invalidar lote', plotInvalidatePh:'Por que este lote deve ser invalidado?', plotInvalidateConfirm:'Confirmar invalida\u00e7\u00e3o', plotInvalidationSent:'Invalida\u00e7\u00e3o enviada \u2014 aguarde o processamento.', plotInvalidationQueued:'Invalida\u00e7\u00e3o salva offline \u2014 ser\u00e1 enviada quando houver conex\u00e3o.', plotInvalidationErr:'Falha ao enviar invalida\u00e7\u00e3o.', plotNotPermitted:'Apenas governadores ou sentinels podem invalidar lotes.', newFarmOpt:'➕ Novo lote...', emptyFarms:'Nenhum lote ainda — escolha "Novo lote"',
         saved:'✅ Limites enviados com sucesso.', queued:'⏳ Na fila offline — aguardando conexão.',
         noFarm:'Escolha ou digite o nome do lote.', noMedia:'Adicione pelo menos uma foto/vídeo.',
         err:'Erro ao salvar: ',
@@ -181,7 +193,7 @@
         farmLabel:'Plot:', farmLoading:'Loading plots...', newFarmLabel:'New plot name:', newFarmPh:'E.g. Sítio São João',
         photoLabel:'Boundary photos/videos:', submitLabel:'Send boundaries',
         farmSelectPh:'Select a farm',
-        mediaLoading:'Loading plot media...', mediaUnavailable:'Could not load media.', mediaNone:'No boundary media recorded for this plot yet.', mediaItems:'media items', invalidar:'Invalidate', invalidado:'invalidated', sentinelBadge:'invalidated by Sentinel', retractTitle:'Invalidate boundary media', retractReasonPh:'Why should this media be invalidated?', retractCancel:'Cancel', retractConfirm:'Submit retraction', reasonRequired:'Please write a reason.', retractionQueued:'Retraction saved offline \u2014 it will be sent when you are back online.', retractionSent:'Retraction submitted \u2014 awaiting processing.', retractionErr:'Failed to submit retraction.', noEmailForRetract:'Link your email above to invalidate media.', newFarmOpt:'➕ New plot...', emptyFarms:'No plots yet — choose "New plot"',
+        mediaLoading:'Loading plot media...', mediaUnavailable:'Could not load media.', mediaNone:'No boundary media recorded for this plot yet.', mediaItems:'media items', invalidar:'Invalidate', invalidado:'invalidated', sentinelBadge:'invalidated by Sentinel', retractTitle:'Invalidate boundary media', retractReasonPh:'Why should this media be invalidated?', retractCancel:'Cancel', retractConfirm:'Submit retraction', reasonRequired:'Please write a reason.', retractionQueued:'Retraction saved offline \u2014 it will be sent when you are back online.', retractionSent:'Retraction submitted \u2014 awaiting processing.', retractionErr:'Failed to submit retraction.', noEmailForRetract:'Link your email above to invalidate media.', plotInvalidate:'Invalidate plot', plotInvalidatePh:'Why should this plot be invalidated?', plotInvalidateConfirm:'Confirm invalidation', plotInvalidationSent:'Invalidation submitted \u2014 awaiting processing.', plotInvalidationQueued:'Invalidation saved offline \u2014 it will be sent when you are back online.', plotInvalidationErr:'Failed to submit invalidation.', plotNotPermitted:'Only governors/sentinels may invalidate plots.', newFarmOpt:'➕ New plot...', emptyFarms:'No plots yet — choose "New plot"',
         saved:'✅ Boundaries sent successfully.', queued:'⏳ Offline queue — waiting for connection.',
         noFarm:'Choose or type the plot name.', noMedia:'Add at least one photo/video.',
         err:'Error saving: ',
@@ -322,6 +334,26 @@
     // -- media submissions used to plot the selected farm --
     const PLOTS_URL = 'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/plots/index.geojson';
     const MEDIA_CDN = 'https://cdn.jsdelivr.net/gh/TrueSightDAO/sunmint@main/';
+    let _piRoleCache = null;
+    async function isGovOrSentinel() {
+      if (_piRoleCache !== null) return _piRoleCache;
+      _piRoleCache = false;
+      const email = getLinkedEmail();
+      if (!email) return false;
+      try {
+        const res = await fetch('https://raw.githubusercontent.com/TrueSightDAO/treasury-cache/main/dao_members.json?cb=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return false;
+        const d = await res.json();
+        const needle = String(email).trim().toLowerCase();
+        const hit = (d.contributors || []).find(c => c && c.email && String(c.email).trim().toLowerCase() === needle);
+        if (hit) {
+          const roles = hit.roles || [];
+          _piRoleCache = roles.indexOf('governor') !== -1 || roles.indexOf('sentinel') !== -1;
+        }
+        return _piRoleCache;
+      } catch (_) { return false; }
+    }
+
     async function renderMediaList(farmName) {
       const box = document.getElementById('mediaList');
       if (!farmName || farmName === '__new__') { box.innerHTML = ''; box.style.display = 'none'; return; }
@@ -350,11 +382,13 @@
         plots.forEach(pl => { total += (pl.properties.media || []).length; });
         if (!total) { box.innerHTML = '<p class="hint">' + t('mediaNone') + '</p>'; return; }
         let html = '<h3>' + esc(farmName) + '</h3>';
+        const canInvalidatePlot = await isGovOrSentinel();
         plots.forEach(pl => {
           const p = pl.properties || {};
           const items = p.media || [];
           if (!items.length) return;
           html += '<p class="hint"><strong>' + esc(p.plot_id || p.id || '') + '</strong> &mdash; ' + items.length + ' ' + t('mediaItems') + '</p>';
+          if (p.plot_id && canInvalidatePlot) html += ' <button class="retract-btn" style="margin-left:6px;" onclick="openPlotInvalidateModal(' + JSON.stringify(p.plot_id) + ',' + JSON.stringify(esc(farmName)) + ')">' + t('plotInvalidate') + '</button>';
           html += '<div class="media-grid">';
           items.forEach(m => {
             const src = (typeof m === 'object' && m.url) ? m.url : String(m);
@@ -507,6 +541,64 @@
       document.querySelector('#retractModal .btn-confirm').textContent = t('retractConfirm');
       document.getElementById('retractStatus').textContent = '';
       document.getElementById('retractModal').style.display = 'flex';
+    }
+    let plotInvalidateTarget = null;
+    function openPlotInvalidateModal(plotId, plotName) {
+      plotInvalidateTarget = { plotId: plotId, plotName: plotName };
+      document.getElementById('plotInvalidateModalTitle').textContent = t('plotInvalidate');
+      document.getElementById('plotInvalidateModalMeta').textContent = plotId + (plotName ? ' \u00b7 ' + plotName : '');
+      const reason = document.getElementById('plotInvalidateReason');
+      reason.value = '';
+      reason.placeholder = t('plotInvalidatePh');
+      document.querySelector('#plotInvalidateModal .btn-cancel').textContent = t('retractCancel');
+      document.querySelector('#plotInvalidateModal .btn-confirm').textContent = t('plotInvalidateConfirm');
+      document.getElementById('plotInvalidateStatus').textContent = '';
+      document.getElementById('plotInvalidateModal').style.display = 'flex';
+    }
+    function closePlotInvalidateModal() {
+      document.getElementById('plotInvalidateModal').style.display = 'none';
+      plotInvalidateTarget = null;
+    }
+    async function confirmPlotInvalidation() {
+      const reason = document.getElementById('plotInvalidateReason').value.trim();
+      const statusEl = document.getElementById('plotInvalidateStatus');
+      if (!plotInvalidateTarget) return;
+      if (!reason) { statusEl.textContent = t('reasonRequired'); return; }
+      const email = getLinkedEmail();
+      if (!email) { statusEl.textContent = t('noEmailForRetract'); return; }
+      if (!(await isGovOrSentinel())) { statusEl.textContent = t('plotNotPermitted'); return; }
+      try {
+        const { publicKey, privateKey } = await ensureKeyPair();
+        const attrs = {
+          'Plot ID': plotInvalidateTarget.plotId,
+          'Reason': reason,
+          'Retractor Email': email
+        };
+        const attrLines = Object.entries(attrs).map(([k, v]) => '- ' + k + ': ' + v).join('\n');
+        const requestText = '[PLOT INVALIDATION EVENT]\n' + attrLines + '\n--------';
+        const signature = await signText(privateKey, requestText);
+        const shareText = requestText + '\n\nMy Digital Signature: ' + publicKey +
+          '\n\nRequest Transaction ID: ' + signature +
+          '\n\nThis submission was generated using ' + window.location.href +
+          '\n\nVerify submission here: https://dapp.truesight.me/verify_request.html';
+        if (!navigator.onLine) {
+          const db = await openQueueDB();
+          const tx = db.transaction(RETRACTION_QUEUE_STORE, 'readwrite');
+          tx.objectStore(RETRACTION_QUEUE_STORE).add({ shareText: shareText, id: 'retr-' + Date.now() });
+          statusEl.textContent = t('plotInvalidationQueued');
+        } else {
+          const formData = new FormData();
+          formData.append('text', shareText);
+          const resp = await fetch(EDGAR_SUBMIT_URL, { method: 'POST', body: formData });
+          const rawText = await resp.text();
+          if (!resp.ok) throw new Error(rawText.slice(0, 200));
+          statusEl.textContent = t('plotInvalidationSent');
+          closePlotInvalidateModal();
+          setTimeout(() => renderMediaList(String((document.getElementById('farmSelect') || {}).value || '')), 1500);
+        }
+      } catch (e) {
+        statusEl.textContent = t('plotInvalidationErr') + ' ' + e.message;
+      }
     }
     function closeRetractModal() {
       document.getElementById('retractModal').style.display = 'none';
