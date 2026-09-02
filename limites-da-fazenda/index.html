@@ -849,6 +849,8 @@
     updatePendingBadge();
     flushBoundaryQueue();
     window.addEventListener('online', flushBoundaryQueue);
+    flushRetractionQueue();
+    window.addEventListener('online', flushRetractionQueue);
   </script>
 
   <!-- Offline support: network-first service worker -->
