@@ -35,6 +35,9 @@
     .pending-badge { display: inline-block; background: #C62828; color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 12px; margin-left: 8px; }
     .photo-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .photo-thumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
+    .thumb-wrap { position: relative; display: inline-block; }
+    .thumb-remove { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; padding: 0; border: none; border-radius: 50%; background: #c62828; color: #fff; font-size: 12px; line-height: 20px; text-align: center; cursor: pointer; }
+    .thumb-remove:hover { background: #b71c1c; }
     .card { background: #fff; border-radius: 8px; padding: 1rem; margin: 14px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   
     .media-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 14px; }
@@ -172,7 +175,7 @@
         navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navLimites:'Limites da Fazenda', navInstrucoes:'Instruções',
         bHeading:'Enviar fotos dos limites da fazenda', bHint:'Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.',
         farmLabel:'Lote:', farmLoading:'Carregando lotes...', newFarmLabel:'Nome do novo lote:', newFarmPh:'Ex: Sítio São João',
-        photoLabel:'Fotos/vídeos dos limites:', submitLabel:'Enviar limites',
+        photoLabel:'Fotos/vídeos dos limites:', removePhoto:'Remover', submitLabel:'Enviar limites',
         farmSelectPh:'Selecione uma fazenda',
         mediaLoading:'Carregando m\u00eddias do plot...', mediaUnavailable:'N\u00e3o foi poss\u00edvel carregar as m\u00eddias.', mediaNone:'Nenhuma m\u00eddia de limite registrada para este lote ainda.', mediaItems:'m\u00eddias', invalidar:'Invalidar', invalidado:'invalidado', sentinelBadge:'invalidado pelo Sentinel', retractTitle:'Invalidar m\u00eddia de limite', retractReasonPh:'Por que esta m\u00eddia deve ser invalidada?', retractCancel:'Cancelar', retractConfirm:'Enviar retrata\u00e7\u00e3o', reasonRequired:'Escreva um motivo.', retractionQueued:'Retrata\u00e7\u00e3o salva offline \u2014 ser\u00e1 enviada quando houver conex\u00e3o.', retractionSent:'Retrata\u00e7\u00e3o enviada \u2014 aguarde o processamento.', retractionErr:'Falha ao enviar retrata\u00e7\u00e3o.', noEmailForRetract:'Vincule seu email acima para poder invalidar m\u00eddias.', plotInvalidate:'Invalidar lote', plotInvalidatePh:'Por que este lote deve ser invalidado?', plotInvalidateConfirm:'Confirmar invalida\u00e7\u00e3o', plotInvalidationSent:'Invalida\u00e7\u00e3o enviada \u2014 aguarde o processamento.', plotInvalidationQueued:'Invalida\u00e7\u00e3o salva offline \u2014 ser\u00e1 enviada quando houver conex\u00e3o.', plotInvalidationErr:'Falha ao enviar invalida\u00e7\u00e3o.', plotNotPermitted:'Apenas governadores ou sentinels podem invalidar lotes.', newFarmOpt:'➕ Novo lote...', emptyFarms:'Nenhum lote ainda — escolha "Novo lote"',
         saved:'✅ Limites enviados com sucesso.', queued:'⏳ Na fila offline — aguardando conexão.',
@@ -191,7 +194,7 @@
         navPlant:'Register Planting', navMonitor:'Monitor Tree', navLimites:'Farm Boundaries', navInstrucoes:'Instructions',
         bHeading:'Send farm boundary photos', bHint:'Walk the farm corners (post, fence, roadside) and take photos. The photo GPS marks the boundary.',
         farmLabel:'Plot:', farmLoading:'Loading plots...', newFarmLabel:'New plot name:', newFarmPh:'E.g. Sítio São João',
-        photoLabel:'Boundary photos/videos:', submitLabel:'Send boundaries',
+        photoLabel:'Boundary photos/videos:', removePhoto:'Remove', submitLabel:'Send boundaries',
         farmSelectPh:'Select a farm',
         mediaLoading:'Loading plot media...', mediaUnavailable:'Could not load media.', mediaNone:'No boundary media recorded for this plot yet.', mediaItems:'media items', invalidar:'Invalidate', invalidado:'invalidated', sentinelBadge:'invalidated by Sentinel', retractTitle:'Invalidate boundary media', retractReasonPh:'Why should this media be invalidated?', retractCancel:'Cancel', retractConfirm:'Submit retraction', reasonRequired:'Please write a reason.', retractionQueued:'Retraction saved offline \u2014 it will be sent when you are back online.', retractionSent:'Retraction submitted \u2014 awaiting processing.', retractionErr:'Failed to submit retraction.', noEmailForRetract:'Link your email above to invalidate media.', plotInvalidate:'Invalidate plot', plotInvalidatePh:'Why should this plot be invalidated?', plotInvalidateConfirm:'Confirm invalidation', plotInvalidationSent:'Invalidation submitted \u2014 awaiting processing.', plotInvalidationQueued:'Invalidation saved offline \u2014 it will be sent when you are back online.', plotInvalidationErr:'Failed to submit invalidation.', plotNotPermitted:'Only governors/sentinels may invalidate plots.', newFarmOpt:'➕ New plot...', emptyFarms:'No plots yet — choose "New plot"',
         saved:'✅ Boundaries sent successfully.', queued:'⏳ Offline queue — waiting for connection.',
@@ -419,16 +422,38 @@
 
     // ── photo previews ──
     let selectedFiles = [];
-    document.getElementById('photoInput').addEventListener('change', (e) => {
-      selectedFiles = Array.from(e.target.files || []);
+    function renderPhotoThumbs() {
       const thumbs = document.getElementById('photoThumbs');
       thumbs.innerHTML = '';
-      selectedFiles.slice(0, 8).forEach(f => {
+      selectedFiles.slice(0, 8).forEach((f, idx) => {
         const url = URL.createObjectURL(f);
+        const wrap = document.createElement('div');
+        wrap.className = 'thumb-wrap';
         const img = document.createElement('img');
         img.src = url;
-        thumbs.appendChild(img);
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'thumb-remove';
+        rm.textContent = '\u2715';
+        rm.title = t('removePhoto');
+        rm.setAttribute('aria-label', t('removePhoto'));
+        rm.onclick = () => removeSelectedPhoto(idx);
+        wrap.appendChild(img);
+        wrap.appendChild(rm);
+        thumbs.appendChild(wrap);
       });
+    }
+    function removeSelectedPhoto(idx) {
+      selectedFiles.splice(idx, 1);
+      if (selectedFiles.length === 0) {
+        document.getElementById('photoInput').value = '';
+      }
+      renderPhotoThumbs();
+    }
+    document.getElementById('photoInput').addEventListener('change', (e) => {
+      selectedFiles = Array.from(e.target.files || []);
+      document.getElementById('photoInput').value = '';
+      renderPhotoThumbs();
     });
 
     // ── offline queue (mirrors tree-report queue) ──
