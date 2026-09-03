@@ -793,24 +793,39 @@
     // geolocation (requestLocation) is used as fallback.
     function readExifGps(file) {
       return new Promise((resolve) => {
-        if (!file || (file.type || '').indexOf('image/jpeg') === -1) return resolve(null);
+        if (!file) return resolve(null);
         const reader = new FileReader();
         reader.onload = () => {
           try {
             const dv = new DataView(reader.result);
-            if (dv.getUint16(0, false) !== 0xFFD8) return resolve(null);
-            let off = 2;
+            // JPEG carries its Exif TIFF in an APP1 segment; HEIC/HEIF (iPhone)
+            // carry it in a container item. Locate the TIFF either way:
+            // scan for 'Exif\x00\x00' + TIFF magic (MM 00 2A / II 2A 00).
             let tiff = null;
-            while (off + 4 < dv.byteLength) {
-              if (dv.getUint8(off) !== 0xFF) { off++; continue; }
-              const marker = dv.getUint8(off + 1);
-              if (marker === 0xDA || marker === 0xD9) break;
-              const len = dv.getUint16(off + 2, false);
-              if (marker === 0xE1 && len >= 14 && tiff === null) {
-                const head = String.fromCharCode(dv.getUint8(off+4),dv.getUint8(off+5),dv.getUint8(off+6),dv.getUint8(off+7),dv.getUint8(off+8),dv.getUint8(off+9));
-                if (head === 'Exif\x00\x00') { tiff = off + 10; break; }
+            if (dv.getUint16(0, false) === 0xFFD8) {
+              let off = 2;
+              while (off + 4 < dv.byteLength) {
+                if (dv.getUint8(off) !== 0xFF) { off++; continue; }
+                const marker = dv.getUint8(off + 1);
+                if (marker === 0xDA || marker === 0xD9) break;
+                const len = dv.getUint16(off + 2, false);
+                if (marker === 0xE1 && len >= 14 && tiff === null) {
+                  const head = String.fromCharCode(dv.getUint8(off+4),dv.getUint8(off+5),dv.getUint8(off+6),dv.getUint8(off+7),dv.getUint8(off+8),dv.getUint8(off+9));
+                  if (head === 'Exif\x00\x00') { tiff = off + 10; break; }
+                }
+                off += 2 + len;
               }
-              off += 2 + len;
+            }
+            if (tiff === null) {
+              for (let i = 2; i + 10 < dv.byteLength; i++) {
+                if (dv.getUint8(i) !== 0x45 || dv.getUint8(i+1) !== 0x78 || dv.getUint8(i+2) !== 0x69 ||
+                    dv.getUint8(i+3) !== 0x66 || dv.getUint8(i+4) !== 0x00 || dv.getUint8(i+5) !== 0x00) continue;
+                const e1 = dv.getUint8(i+6), e2 = dv.getUint8(i+7);
+                if ((e1 === 0x4D && e2 === 0x4D && dv.getUint8(i+8) === 0x00 && dv.getUint8(i+9) === 0x2A) ||
+                    (e1 === 0x49 && e2 === 0x49 && dv.getUint8(i+8) === 0x2A && dv.getUint8(i+9) === 0x00)) {
+                  tiff = i + 6; break;
+                }
+              }
             }
             if (tiff === null) return resolve(null);
             const little = dv.getUint16(tiff, false) === 0x4949;
