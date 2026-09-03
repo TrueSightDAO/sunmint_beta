@@ -361,6 +361,7 @@
         uploadButton: "Enviar foto da galeria",
         photoUploaded: "Foto carregada da galeria.",
         photoGpsFound: "GPS da foto usado para localiza\u00e7\u00e3o.",
+        photoGpsCoords: "Coordenadas GPS da foto \u2014 Latitude: {lat}, Longitude: {lng}.",
         photoGpsMissing: "GPS n\u00e3o encontrado na foto \u2014 usando localiza\u00e7\u00e3o do aparelho (se dispon\u00edvel).",
         treeButton: "Enviar registro",
         requestHeading: "Pedido enviado (assinado)",
@@ -420,6 +421,7 @@
         uploadButton: "Choose from gallery",
         photoUploaded: "Photo loaded from gallery.",
         photoGpsFound: "Photo GPS used for location.",
+        photoGpsCoords: "Photo GPS coordinates \u2014 Latitude: {lat}, Longitude: {lng}.",
         photoGpsMissing: "No GPS found in photo \u2014 using device location (if available).",
         treeButton: "Submit report",
         requestHeading: "Signed request sent",
@@ -912,7 +914,8 @@
         cameraStatus.className = 'success';
         if (gps) {
           latitude = gps.lat; longitude = gps.lng; locationSource = 'photo';
-          cameraStatus.textContent = t('photoUploaded') + ' ' + t('photoGpsFound');
+          cameraStatus.textContent = t('photoUploaded') + ' ' + t('photoGpsFound') + ' ' +
+            t('photoGpsCoords').replace('{lat}', latitude.toFixed(6)).replace('{lng}', longitude.toFixed(6));
         } else {
           cameraStatus.textContent = t('photoUploaded') + ' ' + t('photoGpsMissing');
         }
