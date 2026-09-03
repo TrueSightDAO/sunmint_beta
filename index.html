@@ -836,11 +836,13 @@
               const tag = u16(e);
               if (tag === 1) { gps.latRef = String.fromCharCode(dv.getUint8(e+8)); }
               else if (tag === 2) {
-                const d = readRat(e+8), m = readRat(e+12), s = readRat(e+16);
+                const base = tiff + u32(e+8);
+                const d = readRat(base), m = readRat(base+8), s = readRat(base+16);
                 if (d !== null && m !== null && s !== null) gps.lat = d + m/60 + s/3600;
               } else if (tag === 3) { gps.lngRef = String.fromCharCode(dv.getUint8(e+8)); }
               else if (tag === 4) {
-                const d = readRat(e+8), m = readRat(e+12), s = readRat(e+16);
+                const base = tiff + u32(e+8);
+                const d = readRat(base), m = readRat(base+8), s = readRat(base+16);
                 if (d !== null && m !== null && s !== null) gps.lng = d + m/60 + s/3600;
               }
             }
