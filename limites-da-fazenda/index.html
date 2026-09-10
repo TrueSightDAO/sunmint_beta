@@ -96,7 +96,7 @@
         <input type="text" id="newFarmName" placeholder="Ex: Sítio São João" data-i18n-placeholder="newFarmPh">
       </div>
 
-      <label for="plotTypeSelect" data-i18n="plotTypeLabel">Tipo de lote / Plot type:</label>
+      <label for="plotTypeSelect" data-i18n="plotTypeLabel">Tipo de lote / Plot type: <span style="color:#c0392b">*</span></label>
       <select id="plotTypeSelect">
         <option value="" data-i18n="plotTypeBlank">-</option>
         <option value="restoration" data-i18n="plotTypeRestoration">restoration</option>
@@ -186,12 +186,12 @@
       'pt': {
         navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navLimites:'Limites da Fazenda', navInstrucoes:'Instruções',
         bHeading:'Enviar fotos dos limites da fazenda', bHint:'Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.',
-        farmLabel:'Lote:', farmLoading:'Carregando lotes...', plotTypeLabel:'Tipo de lote:', plotTypeBlank:'- (nao classificado)', plotTypeRestoration:'restauracao', plotTypeMature:'maduro', plotTypeMaturing:'em maturacao', plotTypeEnrichment:'enriquecimento', plotTypeResearch:'pesquisa', plotTypeNursery:'viveiro', plotTypeInfrastructure:'infraestrutura', newFarmLabel:'Nome do novo lote:', newFarmPh:'Ex: Sítio São João',
+        farmLabel:'Lote:', farmLoading:'Carregando lotes...', plotTypeLabel:'Tipo de lote (*):', plotTypeBlank:'- (nao classificado)', plotTypeRestoration:'restauracao', plotTypeMature:'maduro', plotTypeMaturing:'em maturacao', plotTypeEnrichment:'enriquecimento', plotTypeResearch:'pesquisa', plotTypeNursery:'viveiro', plotTypeInfrastructure:'infraestrutura', newFarmLabel:'Nome do novo lote:', newFarmPh:'Ex: Sítio São João',
         photoLabel:'Fotos/vídeos dos limites:', removePhoto:'Remover', submitLabel:'Enviar limites',
         farmSelectPh:'Selecione uma fazenda',
         mediaLoading:'Carregando m\u00eddias do plot...', mediaUnavailable:'N\u00e3o foi poss\u00edvel carregar as m\u00eddias.', mediaNone:'Nenhuma m\u00eddia de limite registrada para este lote ainda.', mediaItems:'m\u00eddias', invalidar:'Invalidar', invalidado:'invalidado', sentinelBadge:'invalidado pelo Sentinel', retractTitle:'Invalidar m\u00eddia de limite', retractReasonPh:'Por que esta m\u00eddia deve ser invalidada?', retractCancel:'Cancelar', retractConfirm:'Enviar retrata\u00e7\u00e3o', reasonRequired:'Escreva um motivo.', retractionQueued:'Retrata\u00e7\u00e3o salva offline \u2014 ser\u00e1 enviada quando houver conex\u00e3o.', retractionSent:'Retrata\u00e7\u00e3o enviada \u2014 aguarde o processamento.', retractionErr:'Falha ao enviar retrata\u00e7\u00e3o.', noEmailForRetract:'Vincule seu email acima para poder invalidar m\u00eddias.', plotInvalidate:'Invalidar lote', plotInvalidatePh:'Por que este lote deve ser invalidado?', plotInvalidateConfirm:'Confirmar invalida\u00e7\u00e3o', plotInvalidationSent:'Invalida\u00e7\u00e3o enviada \u2014 aguarde o processamento.', plotInvalidationQueued:'Invalida\u00e7\u00e3o salva offline \u2014 ser\u00e1 enviada quando houver conex\u00e3o.', plotInvalidationErr:'Falha ao enviar invalida\u00e7\u00e3o.', plotNotPermitted:'Apenas governadores ou sentinels podem invalidar lotes.', newFarmOpt:'➕ Novo lote...', emptyFarms:'Nenhum lote ainda — escolha "Novo lote"',
         saved:'✅ Limites enviados com sucesso.', queued:'⏳ Na fila offline — aguardando conexão.',
-        noFarm:'Escolha ou digite o nome do lote.', noMedia:'Adicione pelo menos uma foto/vídeo.',
+        noFarm:'Escolha ou digite o nome do lote.', noPlotType:'Selecione o tipo de lote (obrigat\u00f3rio).', noMedia:'Adicione pelo menos uma foto/vídeo.',
         err:'Erro ao salvar: ',
         emailHeading:'Vincular email (opcional)', emailHint:'Seu email é usado para identificá-lo na TrueSight DAO. Isso cria (ou reutiliza) sua assinatura digital neste telefone/navegador.',
         emailLabel:'Seu email', emailButton:'Vincular email', emailLinkedLabel:'Email vinculado:', emailUnlinkButton:'Desvincular email',
@@ -205,12 +205,12 @@
       'en': {
         navPlant:'Register Planting', navMonitor:'Monitor Tree', navLimites:'Farm Boundaries', navInstrucoes:'Instructions',
         bHeading:'Send farm boundary photos', bHint:'Walk the farm corners (post, fence, roadside) and take photos. The photo GPS marks the boundary.',
-        farmLabel:'Plot:', farmLoading:'Loading plots...', plotTypeLabel:'Plot type:', plotTypeBlank:'- (unclassified)', plotTypeRestoration:'restoration', plotTypeMature:'mature', plotTypeMaturing:'maturing', plotTypeEnrichment:'enrichment', plotTypeResearch:'research', plotTypeNursery:'nursery', plotTypeInfrastructure:'infrastructure', newFarmLabel:'New plot name:', newFarmPh:'E.g. Sítio São João',
+        farmLabel:'Plot:', farmLoading:'Loading plots...', plotTypeLabel:'Plot type (*):', plotTypeBlank:'- (unclassified)', plotTypeRestoration:'restoration', plotTypeMature:'mature', plotTypeMaturing:'maturing', plotTypeEnrichment:'enrichment', plotTypeResearch:'research', plotTypeNursery:'nursery', plotTypeInfrastructure:'infrastructure', newFarmLabel:'New plot name:', newFarmPh:'E.g. Sítio São João',
         photoLabel:'Boundary photos/videos:', removePhoto:'Remove', submitLabel:'Send boundaries',
         farmSelectPh:'Select a farm',
         mediaLoading:'Loading plot media...', mediaUnavailable:'Could not load media.', mediaNone:'No boundary media recorded for this plot yet.', mediaItems:'media items', invalidar:'Invalidate', invalidado:'invalidated', sentinelBadge:'invalidated by Sentinel', retractTitle:'Invalidate boundary media', retractReasonPh:'Why should this media be invalidated?', retractCancel:'Cancel', retractConfirm:'Submit retraction', reasonRequired:'Please write a reason.', retractionQueued:'Retraction saved offline \u2014 it will be sent when you are back online.', retractionSent:'Retraction submitted \u2014 awaiting processing.', retractionErr:'Failed to submit retraction.', noEmailForRetract:'Link your email above to invalidate media.', plotInvalidate:'Invalidate plot', plotInvalidatePh:'Why should this plot be invalidated?', plotInvalidateConfirm:'Confirm invalidation', plotInvalidationSent:'Invalidation submitted \u2014 awaiting processing.', plotInvalidationQueued:'Invalidation saved offline \u2014 it will be sent when you are back online.', plotInvalidationErr:'Failed to submit invalidation.', plotNotPermitted:'Only governors/sentinels may invalidate plots.', newFarmOpt:'➕ New plot...', emptyFarms:'No plots yet — choose "New plot"',
         saved:'✅ Boundaries sent successfully.', queued:'⏳ Offline queue — waiting for connection.',
-        noFarm:'Choose or type the plot name.', noMedia:'Add at least one photo/video.',
+        noFarm:'Choose or type the plot name.', noPlotType:'Select a plot type (required).', noMedia:'Add at least one photo/video.',
         err:'Error saving: ',
         emailHeading:'Link email (optional)', emailHint:'Your email identifies you in the TrueSight DAO. This creates (or reuses) your digital signature on this phone/browser.',
         emailLabel:'Your email', emailButton:'Link email', emailLinkedLabel:'Email linked:', emailUnlinkButton:'Unlink email',
@@ -783,9 +783,10 @@
         if (farmName) await addLocalFarm(farmName); // rule 3: next event sees it
       }
       if (!farmName) { status.className='err'; status.textContent = t('noFarm'); return; }
+      const plotType = (document.getElementById('plotTypeSelect') || {}).value || '';
+      if (!plotType) { status.className='err'; status.textContent = t('noPlotType'); return; }
       if (!selectedFiles.length) { status.className='err'; status.textContent = t('noMedia'); return; }
 
-      const plotType = (document.getElementById('plotTypeSelect') || {}).value || '';
       const record = {
         type: 'FARM_BOUNDARY_EVIDENCE',
         farm_name: farmName,
