@@ -382,6 +382,7 @@
         pendingPlural: " registros pendentes de envio (sem internet no momento).",
         pendingUploading: "Enviando registros pendentes...",
         pendingUploaded: "Registro(s) pendente(s) enviado(s) com sucesso!",
+        pendingPhotoPending: "Relatório enviado, mas a foto não foi salva no servidor. Vou tentar de novo.",
       },
       en: {
         intro: "A simplified TrueSight DAO app for farmers. Report tree plantings in a few steps — linking your email is optional.",
@@ -442,6 +443,7 @@
         pendingPlural: " reports pending upload (no internet right now).",
         pendingUploading: "Uploading pending reports...",
         pendingUploaded: "Pending report(s) uploaded successfully!",
+        pendingPhotoPending: "Report sent, but the photo wasn't stored on the server. I'll retry.",
       },
     };
     let currentLang = localStorage.getItem('sunmint_lang') || 'pt';
@@ -707,6 +709,39 @@
       });
     }
 
+    // Persist that this record's photo failed to reach storage, so the blob is
+    // preserved (never evicted by markTreeReportUploaded) and a later flush
+    // retries it rather than assuming it is done.
+    async function markTreeReportPhotoPending(id) {
+      const db = await openTreeQueueDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(TREE_QUEUE_STORE, 'readwrite');
+        const store = tx.objectStore(TREE_QUEUE_STORE);
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const record = getReq.result;
+          if (record) {
+            record.photoUploadPending = true;
+            record.photoUploadPendingAt = new Date().toISOString();
+            store.put(record);
+          }
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    // A submission is only fully done when Edgar recorded the event AND the
+    // attached photo actually landed in the sunmint repo. Edgar reports the
+    // binary upload separately as fileUploadedToGithub; a 200 with
+    // fileUploadedToGithub === false means the signed event was accepted but
+    // the binary upload silently dropped (e.g. a GitHub secondary rate limit on
+    // a burst of photos). Treating that as success would evict the only
+    // surviving copy of the photo from IndexedDB and lose it, so we do not.
+    function photoLanded(data) {
+      return !(data && data.fileUploadedToGithub === false);
+    }
+
     async function uploadTreeReport(record) {
       const formData = new FormData();
       formData.append('text', record.shareText);
@@ -758,21 +793,36 @@
       statusEl.className = '';
 
       let uploadedCount = 0;
+      let photoPendingCount = 0;
       let lastResult = null;
       for (const record of pending) {
         try {
           lastResult = await uploadTreeReport(record);
-          await markTreeReportUploaded(record.id);
-          uploadedCount++;
+          if (photoLanded(lastResult)) {
+            await markTreeReportUploaded(record.id);
+            uploadedCount++;
+          } else {
+            // Edgar recorded the event but the photo upload dropped: flag the
+            // record so its blob is preserved and it stays queued for retry.
+            await markTreeReportPhotoPending(record.id);
+            photoPendingCount++;
+          }
         } catch (_) {
           // Still offline (or Edgar unreachable) — leave queued, try again later.
         }
       }
 
-      if (uploadedCount > 0) {
+      if (photoPendingCount > 0) {
+        // Event(s) sent, but the photo(s) did not reach storage: surfaced so
+        // this is never a silent drop.
+        statusEl.textContent = t('pendingPhotoPending');
+        statusEl.className = 'error';
+      } else if (uploadedCount > 0) {
         statusEl.textContent = t('pendingUploaded');
         statusEl.className = 'success';
-        if (lastResult) renderSubmissionResult(pending[pending.length - 1].shareText, lastResult);
+      }
+      if (uploadedCount > 0 && lastResult) {
+        renderSubmissionResult(pending[pending.length - 1].shareText, lastResult);
       }
       await updatePendingBadge();
     }
