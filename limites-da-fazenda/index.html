@@ -748,7 +748,7 @@
         'Media Count': String(selectedFiles.length),
         'Captured At': new Date().toISOString(),
         'Device GPS': JSON.stringify(await getDeviceGps()),
-        'Submission Source': 'sunmint-limites-da-fazenda'
+        'Submission Source': window.location.href
       };
       const attrLines = Object.entries(attrs).map(([k, v]) => '- ' + k + ': ' + v).join('\n');
       const requestText = '[FARM BOUNDARY EVIDENCE EVENT]\n' + attrLines + '\n--------';
