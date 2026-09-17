@@ -242,6 +242,7 @@
       <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
       <option value="limites" data-i18n="navLimites">Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
+      <option value="payout" data-i18n="navPayout">Registrar Pagamento</option>
     </select>
   </div>
 
@@ -329,7 +330,7 @@
         navPlant: "Registrar Plantio",
         navMonitor: "Monitorar Árvore",
         navInstrucoes: "Instruções",
-        navLimites: "Limites da Fazenda",
+        navLimites: "Limites da Fazenda", navPayout:"Registrar Pagamento",
         downloadHeading: "Baixe o aplicativo Android",
         downloadHint: "Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.",
         downloadButton: "Baixar APK (Android)",
@@ -390,7 +391,7 @@
         navPlant: "Plant Tree",
         navMonitor: "Monitor Tree",
         navInstrucoes: "Instructions",
-        navLimites: "Farm Boundaries",
+        navLimites: "Farm Boundaries", navPayout:"Register Payout",
         downloadHeading: "Download the Android app",
         downloadHint: "Prefer the native app? It works offline and saves your reports on your phone.",
         downloadButton: "Download APK (Android)",
@@ -1146,6 +1147,7 @@
     // ── init ─────────────────────────────────────────────────────────────
     // ── nav dropdown ────────────────────────────────────────────────
     function onNavChange() {
+      if (document.getElementById('pageNav').value === 'payout') { window.location.href = '/payout_registration.html'; return; }
       const select = document.getElementById('pageNav');
       if (select.value === 'monitor') {
         window.location.href = '/monitor-tree-growth/';

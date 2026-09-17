@@ -22,7 +22,7 @@ PAGES = [
     "instrucoes/index.html",
     "limites-da-fazenda/index.html",
 ]
-NAV_OPTIONS = ["plant", "monitor", "limites", "instrucoes"]
+NAV_OPTIONS = ["plant", "monitor", "limites", "instrucoes", "payout"]
 # page -> the option that should be selected on it
 EXPECTED_SELECTED = {
     "index.html": "plant",
