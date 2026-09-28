@@ -3,7 +3,7 @@
 // copies served only when the network is unreachable, so the farmer app
 // still loads in the field with no signal.
 
-const CACHE_NAME = 'sunmint-cache-v3';
+const CACHE_NAME = 'sunmint-cache-v4';
 
 const URLS_TO_CACHE = [
   './',
