@@ -78,6 +78,11 @@
     .tree-card .tc-monitor { display: inline-block; margin-top: 0.45rem; font-size: 0.8rem;
       color: #2e7d32; font-weight: 600; text-decoration: none; }
     .tree-card .tc-monitor:hover { text-decoration: underline; }
+    .txid-filter { text-align: center; margin: 0.2rem 0 0.9rem; }
+    .txid-filter label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.3rem; }
+    .txid-filter input { width: 100%; max-width: 420px; padding: 0.5rem; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 0.95rem; font-family: ui-monospace, SFMono-Regular, monospace; }
+    .tree-card .tc-meta .tc-txid, .tree-card .tc-details .tc-txid { font-family: ui-monospace, SFMono-Regular, monospace; }
     .footer { text-align: center; font-size: 0.8rem; color: #888; margin-top: 0.5rem; }
     @media (max-width: 420px) {
       .tree-card img.tc-photo { width: 96px; height: 96px; }
@@ -112,6 +117,13 @@
     <div id="banner"></div>
     <div class="count" id="count"></div>
 
+    <div class="txid-filter">
+      <label for="txidFilter" data-i18n="filterLabel">Filtrar por ID da transação</label>
+      <input type="search" id="txidFilter" data-i18n-ph="filterPlaceholder"
+             placeholder="ex.: Edgar_20260924 ou o ID completo"
+             oninput="onFilterInput()" autocomplete="off">
+    </div>
+
     <div id="treeList"></div>
 
     <div class="footer" data-i18n="footer">Sua chave nunca sai deste dispositivo. Nada é enviado a um servidor.</div>
@@ -140,6 +152,10 @@
         footer: 'Sua chave nunca sai deste dispositivo. Nada é enviado a um servidor.',
         lblSpecies: 'Espécie', lblQR: 'QR', lblMeasured: 'Última medição', lblProgram: 'Programa', lblPhoto: 'Foto',
         lblStatus: 'Status', lblSource: 'Origem do envio', monitorThis: 'Monitorar esta árvore',
+        lblTxid: 'ID da transação',
+        filterLabel: 'Filtrar por ID da transação',
+        filterPlaceholder: 'ex.: Edgar_20260924 ou o ID completo',
+        zeroFiltered: 'Nenhuma árvore corresponde a este filtro.',
         statusNEW: 'Novo', statusLINKED: 'Vinculada', statusSOLD: 'Vendida', statusINVALID: 'Inválida'
       },
       en: {
@@ -160,6 +176,10 @@
         footer: 'Your key never leaves this device. Nothing is sent to a server.',
         lblSpecies: 'Species', lblQR: 'QR', lblMeasured: 'Last measured', lblProgram: 'Program', lblPhoto: 'Photo',
         lblStatus: 'Status', lblSource: 'Submission source', monitorThis: 'Monitor this tree',
+        lblTxid: 'Transaction request ID',
+        filterLabel: 'Filter by transaction request ID',
+        filterPlaceholder: 'e.g. Edgar_20260924 or the full ID',
+        zeroFiltered: 'No trees match this filter.',
         statusNEW: 'New', statusLINKED: 'Linked', statusSOLD: 'Sold', statusINVALID: 'Invalid'
       }
     };
@@ -190,6 +210,9 @@
       document.querySelectorAll('[data-i18n]').forEach((el) => {
         el.textContent = t(el.getAttribute('data-i18n'));
       });
+      document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+        el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+      });
       retranslate();
     }
 
@@ -211,6 +234,12 @@
     ];
 
     function $(id) { return document.getElementById(id); }
+    // A request transaction id is a ~344-char signature; the always-visible row
+    // shows a recognisable head+tail, the expandable details the full value.
+    function shortTxid(v) {
+      const s = String(v || '');
+      return s.length > 24 ? s.slice(0, 12) + '\u2026' + s.slice(-8) : s;
+    }
     function setStatus(msg, cls) { const s = $('status'); s.textContent = msg || ''; s.className = 'status' + (cls ? ' ' + cls : ''); }
     function esc(v) { return (v === null || v === undefined) ? '' : String(v).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -225,12 +254,24 @@
       lastBanner = { key: key, cls: cls || '' };
       $('banner').innerHTML = key ? '<div class="banner ' + cls + '">' + esc(t(key)) + '</div>' : '';
     }
+    function applyFilter() {
+      const all = lastTrees || [];
+      const box = $('txidFilter');
+      const shown = MyTreesUtils.filterByQuery(all, box ? box.value : '');
+      if (all.length === 0) { $('count').textContent = ''; $('treeList').innerHTML = ''; return; }
+      if (shown.length === 0) {
+        $('count').textContent = '';
+        $('treeList').innerHTML = '<div class="status info">' + esc(t('zeroFiltered')) + '</div>';
+        return;
+      }
+      $('count').textContent = (shown.length === 1) ? t('countOne') : t('countMany').replace('{n}', shown.length);
+      $('treeList').innerHTML = shown.map((f, i) => treeCard(f, i)).join('');
+    }
     function renderTrees(mine) {
       lastTrees = mine || null;
-      if (!mine || mine.length === 0) { $('count').textContent = ''; $('treeList').innerHTML = ''; return; }
-      $('count').textContent = (mine.length === 1) ? t('countOne') : t('countMany').replace('{n}', mine.length);
-      $('treeList').innerHTML = mine.map((f, i) => treeCard(f, i)).join('');
+      applyFilter();
     }
+    function onFilterInput() { applyFilter(); }
     function retranslate() {
       applyStatus(lastStatus.key, lastStatus.cls);
       applyBanner(lastBanner.key, lastBanner.cls);
@@ -261,6 +302,7 @@
       if (p.qr_code) rows.push(t('lblQR') + ': ' + esc(p.qr_code));
       if (p.last_measured) rows.push(t('lblMeasured') + ': ' + esc(String(p.last_measured).slice(0, 10)));
       if (p.program) rows.push(t('lblProgram') + ': ' + esc(p.program));
+      if (p.request_txid) rows.push(t('lblTxid') + ': <span class="tc-txid">' + esc(shortTxid(p.request_txid)) + '</span>');
 
       const treeId = String(p.tree_id || '');
       const det = [];
@@ -270,6 +312,7 @@
       if (p.last_measured) det.push('<div><strong>' + t('lblMeasured') + ':</strong> ' + esc(String(p.last_measured).slice(0, 10)) + '</div>');
       if (p.program) det.push('<div><strong>' + t('lblProgram') + ':</strong> ' + esc(p.program) + '</div>');
       if (p.submission_source) det.push('<div><strong>' + t('lblSource') + ':</strong> ' + esc(p.submission_source) + '</div>');
+      if (p.request_txid) det.push('<div><strong>' + t('lblTxid') + ':</strong> <span class="tc-txid">' + esc(p.request_txid) + '</span></div>');
       const detId = 'tc-det-' + idx;
       const monitorHref = '/monitor-tree-growth/?tree=' + encodeURIComponent(treeId);
       const details = '<div class="tc-details" id="' + detId + '" hidden>' + det.join('') +

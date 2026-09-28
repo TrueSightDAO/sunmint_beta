@@ -111,5 +111,34 @@ function feat(pk, id, extra) {
         assert.ok(!/publicKey|privateKey|pixKey|cpf/i.test(src), 'utils must not touch raw key PII');
     });
 
+    await test('filterByQuery: blank query keeps every tree (no filter)', () => {
+        const feed = [feat(PK_A, 'T1'), feat(PK_B, 'T2')];
+        assert.strictEqual(M.filterByQuery(feed, '').length, 2);
+        assert.strictEqual(M.filterByQuery(feed, '   ').length, 2);
+        assert.strictEqual(M.filterByQuery(feed, null).length, 2);
+    });
+
+    await test('filterByQuery: matches request_txid substring, case-insensitively', () => {
+        const feed = [
+            feat(PK_A, 'T1', { request_txid: 'AbCdEf123456' }),
+            feat(PK_A, 'T2', { request_txid: 'zzzzzzzzzzzz' }),
+        ];
+        assert.deepStrictEqual(M.filterByQuery(feed, 'cdef12').map(f => f.properties.tree_id), ['T1']);
+        assert.deepStrictEqual(M.filterByQuery(feed, 'ZZZZ').map(f => f.properties.tree_id), ['T2']);
+    });
+
+    await test('filterByQuery: also matches tree_id, and returns [] when nothing matches', () => {
+        const feed = [feat(PK_A, 'Edgar_20260924003104_023'), feat(PK_A, 'Edgar_20260903083532_007')];
+        assert.deepStrictEqual(M.filterByQuery(feed, '20260903').map(f => f.properties.tree_id),
+            ['Edgar_20260903083532_007']);
+        assert.strictEqual(M.filterByQuery(feed, 'nope-nothing').length, 0);
+    });
+
+    await test('filterByQuery: a tree without a txid is matched only by its tree_id', () => {
+        const feed = [feat(PK_A, 'Edgar_1'), feat(PK_A, 'Edgar_2', { request_txid: 'SIGONLY' })];
+        assert.deepStrictEqual(M.filterByQuery(feed, 'SIGONLY').map(f => f.properties.tree_id), ['Edgar_2']);
+        assert.strictEqual(M.filterByQuery(feed, 'SIG').length, 1);
+    });
+
     console.log('\nmy-trees-utils: ' + passed + ' passed' + (process.exitCode ? ', FAILURES' : ', 0 failed'));
 })();
