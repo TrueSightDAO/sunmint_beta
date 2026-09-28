@@ -139,7 +139,8 @@
         countMany: '{n} árvores encontradas.',
         footer: 'Sua chave nunca sai deste dispositivo. Nada é enviado a um servidor.',
         lblSpecies: 'Espécie', lblQR: 'QR', lblMeasured: 'Última medição', lblProgram: 'Programa', lblPhoto: 'Foto',
-        lblStatus: 'Status', lblSource: 'Origem do envio', monitorThis: 'Monitorar esta árvore'
+        lblStatus: 'Status', lblSource: 'Origem do envio', monitorThis: 'Monitorar esta árvore',
+        statusNEW: 'Novo', statusLINKED: 'Vinculada', statusSOLD: 'Vendida', statusINVALID: 'Inválida'
       },
       en: {
         pageLabel: 'Page:',
@@ -158,7 +159,8 @@
         countMany: '{n} trees found.',
         footer: 'Your key never leaves this device. Nothing is sent to a server.',
         lblSpecies: 'Species', lblQR: 'QR', lblMeasured: 'Last measured', lblProgram: 'Program', lblPhoto: 'Photo',
-        lblStatus: 'Status', lblSource: 'Submission source', monitorThis: 'Monitor this tree'
+        lblStatus: 'Status', lblSource: 'Submission source', monitorThis: 'Monitor this tree',
+        statusNEW: 'New', statusLINKED: 'Linked', statusSOLD: 'Sold', statusINVALID: 'Invalid'
       }
     };
 
@@ -168,6 +170,16 @@
     function t(key) {
       const d = I18N[currentLang] || I18N.pt;
       return (key in d) ? d[key] : key;
+    }
+
+    // Status chip VALUES (NEW/LINKED/SOLD/INVALID) are data keywords, but they
+    // are user-facing, so translate them; fall back to the raw value for any
+    // status we don't have a key for.
+    function statusLabel(s) {
+      if (!s) return '';
+      const d = I18N[currentLang] || I18N.pt;
+      const k = 'status' + s;
+      return (k in d) ? d[k] : s;
     }
 
     function setLang(lang) {
@@ -240,7 +252,7 @@
     function treeCard(f, idx) {
       const p = f.properties || {};
       const status = MyTreesUtils.normalizeStatus(p.status);
-      const chip = status ? '<span class="chip ' + status + '">' + esc(status) + '</span>' : (p.status ? '<span class="chip">' + esc(p.status) + '</span>' : '');
+      const chip = status ? '<span class="chip ' + status + '">' + esc(statusLabel(status)) + '</span>' : (p.status ? '<span class="chip">' + esc(p.status) + '</span>' : '');
       const photo = p.photo_url
         ? '<img class="tc-photo" src="' + esc(p.photo_url) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'
         : '';
@@ -252,7 +264,7 @@
 
       const treeId = String(p.tree_id || '');
       const det = [];
-      if (p.status) det.push('<div><strong>' + t('lblStatus') + ':</strong> ' + esc(p.status) + '</div>');
+      if (p.status) det.push('<div><strong>' + t('lblStatus') + ':</strong> ' + esc(statusLabel(status) || p.status) + '</div>');
       if (p.species) det.push('<div><strong>' + t('lblSpecies') + ':</strong> ' + esc(p.species) + '</div>');
       if (p.qr_code) det.push('<div><strong>' + t('lblQR') + ':</strong> ' + esc(p.qr_code) + '</div>');
       if (p.last_measured) det.push('<div><strong>' + t('lblMeasured') + ':</strong> ' + esc(String(p.last_measured).slice(0, 10)) + '</div>');
