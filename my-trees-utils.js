@@ -2,19 +2,26 @@
  * My Trees - client-side filter utilities (isomorphic: browser + Node).
  *
  * Option 2 of the "My Trees" module: NO server endpoint, NO per-user query.
- * The public trees/index.geojson already carries, per tree, a non-reversible
- * pseudonym
+ * The public trees/index.geojson already carries, per tree, a canonical
+ * content-addressed handle for the signer's key:
  *
  *     pk_hash = 'pk-' + base64url(sha256(spki(publicKey)))[:12]
  *
  * (emitted by sunmint/scripts/build_tree_geojson.py from the tree's signing
  * key -- the same value the planting app and payout form derive locally). The
  * viewer's browser derives its OWN pk_hash from the keypair it already holds in
- * localStorage and keeps only the matching features -- so the raw key never
- * leaves the device and the shared public feed stays anonymous.
+ * localStorage and keeps only the matching features -- so the shared public
+ * feed never carries the raw key blob.
  *
- * PRIVACY CONTRACT: a raw public key, name, email, PIX key or CPF never belongs
- * in this file's inputs or outputs. Only the derived pk_hash does.
+ * WHAT THIS DOES AND DOES NOT HIDE: pk_hash is derived from the RSA public key,
+ * which is public by construction -- anyone holding that key re-derives the same
+ * handle, so it is an opaque *join key*, not an anonymiser. What actually protects
+ * a person is that the key<->name/email/PIX map lives only in the private DAO
+ * member cache, never in the public feed. See
+ * agentic_ai_context/conventions/DEDUP_KEY_CONVENTION.md 2.6.
+ *
+ * CONTRACT: a raw public key, name, email, PIX key or CPF never belongs in this
+ * file's inputs or outputs. Only the derived pk_hash does.
  */
 (function (global) {
     function _str(v) { return (v === null || v === undefined) ? '' : String(v); }
