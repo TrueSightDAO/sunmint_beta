@@ -152,6 +152,7 @@
         footer: 'Sua chave nunca sai deste dispositivo. Nada é enviado a um servidor.',
         lblSpecies: 'Espécie', lblQR: 'QR', lblMeasured: 'Última medição', lblProgram: 'Programa', lblPhoto: 'Foto',
         lblStatus: 'Status', lblSource: 'Origem do envio', monitorThis: 'Monitorar esta árvore',
+        ledgerLink: 'Ver registro no livro-razão',
         lblTxid: 'ID da transação',
         filterLabel: 'Filtrar por ID da transação',
         filterPlaceholder: 'ex.: Edgar_20260924 ou o ID completo',
@@ -176,6 +177,7 @@
         footer: 'Your key never leaves this device. Nothing is sent to a server.',
         lblSpecies: 'Species', lblQR: 'QR', lblMeasured: 'Last measured', lblProgram: 'Program', lblPhoto: 'Photo',
         lblStatus: 'Status', lblSource: 'Submission source', monitorThis: 'Monitor this tree',
+        ledgerLink: 'View ledger record',
         lblTxid: 'Transaction request ID',
         filterLabel: 'Filter by transaction request ID',
         filterPlaceholder: 'e.g. Edgar_20260924 or the full ID',
@@ -315,8 +317,13 @@
       if (p.request_txid) det.push('<div><strong>' + t('lblTxid') + ':</strong> <span class="tc-txid">' + esc(p.request_txid) + '</span></div>');
       const detId = 'tc-det-' + idx;
       const monitorHref = '/monitor-tree-growth/?tree=' + encodeURIComponent(treeId);
+      const ledgerHref = MyTreesUtils.buildLedgerLink(treeId);
+      const ledgerLink = ledgerHref
+        ? '<a class="tc-monitor" href="' + esc(ledgerHref) + '" target="_blank" rel="noopener">' + t('ledgerLink') + ' \u2192</a>'
+        : '';
       const details = '<div class="tc-details" id="' + detId + '" hidden>' + det.join('') +
-        '<a class="tc-monitor" href="' + esc(monitorHref) + '">' + t('monitorThis') + ' \u2192</a></div>';
+        '<a class="tc-monitor" href="' + esc(monitorHref) + '">' + t('monitorThis') + ' \u2192</a>' +
+        ledgerLink + '</div>';
 
       return '<div class="tree-card">' + photo +
         '<div class="tc-main">' +
