@@ -52,12 +52,13 @@
     .banner.note { background: #eef4fc; border: 1px solid #cfe0f5; color: #1a4d8f; }
     .count { text-align: center; font-size: 0.9rem; color: #444; margin: 0.2rem 0 0.8rem; }
     .tree-card { border: 1px solid #d7d7d7; border-radius: 8px; background: #fbfbfb;
-      padding: 0.6rem 0.7rem; margin: 0.4rem 0; display: flex; gap: 0.7rem; }
+      padding: 0.6rem 0.7rem; margin: 0.4rem 0; display: flex; gap: 0.7rem;
+      min-width: 0; overflow-wrap: anywhere; }
     .tree-card img.tc-photo { width: 128px; height: 128px; object-fit: cover; border-radius: 6px;
       border: 1px solid #ddd; flex: 0 0 auto; background: #eee; }
     .tree-card .tc-main { flex: 1; min-width: 0; }
-    .tree-card .tc-id { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem; color: #111; word-break: break-all; }
-    .tree-card .tc-meta { font-size: 0.78rem; color: #666; margin-top: 0.15rem; line-height: 1.5; }
+    .tree-card .tc-id { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem; color: #111; word-break: break-all; overflow-wrap: anywhere; }
+    .tree-card .tc-meta { font-size: 0.78rem; color: #666; margin-top: 0.15rem; line-height: 1.5; overflow-wrap: anywhere; }
     .tree-card .tc-meta a { color: #1a4d8f; }
     .chip { display: inline-block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
       border-radius: 10px; padding: 0.1rem 0.5rem; margin-left: 0.3rem; vertical-align: middle;
@@ -66,17 +67,21 @@
     .chip.NEW { background: #eef4fc; color: #1a4d8f; }
     .chip.INVALID { background: #fdecea; color: #b00020; }
     .chip.SOLD { background: #f3e8fd; color: #6a1b9a; }
-.tree-card .tc-toggle { background: none; border: 0; padding: 0; margin: 0; font: inherit;
+.tree-card .tc-toggle { background: none; border: 0; padding: 0; margin: 0; font: inherit; max-width: 100%; overflow-wrap: anywhere;
       font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem; color: #1a4d8f;
       text-decoration: underline; cursor: pointer; text-align: left; }
     .tree-card .tc-toggle:hover { color: #0d2f5c; }
     .tree-card .tc-details { margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed #ddd;
-      font-size: 0.8rem; color: #444; line-height: 1.55; }
+      font-size: 0.8rem; color: #444; line-height: 1.55; overflow-wrap: anywhere; word-break: break-word; }
+    .tree-card .tc-details > div { overflow-wrap: anywhere; }
     .tree-card .tc-details[hidden] { display: none; }
     .tree-card .tc-monitor { display: inline-block; margin-top: 0.45rem; font-size: 0.8rem;
       color: #2e7d32; font-weight: 600; text-decoration: none; }
     .tree-card .tc-monitor:hover { text-decoration: underline; }
     .footer { text-align: center; font-size: 0.8rem; color: #888; margin-top: 0.5rem; }
+    @media (max-width: 420px) {
+      .tree-card img.tc-photo { width: 96px; height: 96px; }
+    }
   </style>
 </head>
 <body>
