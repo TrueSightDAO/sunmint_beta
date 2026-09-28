@@ -72,6 +72,7 @@ async function openWithKey(page, { pub = PUB } = {}) {
   await stubFeed(page, await feedFor(pkHash));
   await page.addInitScript(([p]) => {
     if (p) localStorage.setItem('publicKey', p); else localStorage.removeItem('publicKey');
+    localStorage.setItem('sunmint_lang', 'en');
   }, [pub]);
   await page.goto('/my-trees/');
   return pkHash;
@@ -83,9 +84,9 @@ test('lists ONLY my trees, each with its status chip', async ({ page }) => {
   const ids = await page.$$eval('.tree-card .tc-toggle', (b) => b.map((x) => x.textContent));
   expect(ids).toEqual(['MINE_1', 'MINE_2']);           // THEIRS_1 excluded
   const chips = await page.$$eval('.tree-card .chip', (c) => c.map((x) => x.textContent));
-  expect(chips).toContain('LINKED');
-  expect(chips).toContain('NEW');
-  expect(chips).not.toContain('SOLD');                 // belongs to someone else
+  expect(chips).toContain('Linked');
+  expect(chips).toContain('New');
+  expect(chips).not.toContain('Sold');                 // belongs to someone else
   await expect(page.locator('#count')).toContainText('2');
 });
 
@@ -96,7 +97,7 @@ test('clicking the tree id expands the details card (R3)', async ({ page }) => {
   await expect(details).toBeHidden();
   await page.locator('.tree-card .tc-toggle').first().click();
   await expect(details).toBeVisible();
-  await expect(details).toContainText('LINKED');
+  await expect(details).toContainText('Linked');
   await expect(page.locator('.tree-card .tc-toggle').first()).toHaveAttribute('aria-expanded', 'true');
   // collapse again
   await page.locator('.tree-card .tc-toggle').first().click();
@@ -136,4 +137,57 @@ test('privacy: the raw public key never reaches the DOM', async ({ page }) => {
   await page.waitForSelector('.tree-card');
   const html = await page.content();
   expect(html).not.toContain(PUB);
+});
+
+test('clicking a card highlights it, expands details, and sets ?tree= in the URL (R1/R2)', async ({ page }) => {
+  await openWithKey(page);
+  await page.waitForSelector('.tree-card');
+  const card = page.locator('.tree-card').first();
+  await expect(card).not.toHaveClass(/is-selected/);
+  await card.locator('.tc-meta').click();
+  await expect(card).toHaveClass(/is-selected/);
+  await expect(card.locator('.tc-details')).toBeVisible();
+  expect(page.url()).toContain('?tree=' + encodeURIComponent('MINE_1'));
+});
+
+test('a ?tree=<id> deep-link scrolls to and expands that tree on load (R2)', async ({ page }) => {
+  const pkHash = derivePkHashSync(PUB);
+  await stubFeed(page, await feedFor(pkHash));
+  await page.addInitScript(([p]) => {
+    localStorage.setItem('publicKey', p);
+    localStorage.setItem('sunmint_lang', 'en');
+  }, [PUB]);
+  await page.goto('/my-trees/?tree=' + encodeURIComponent('MINE_2'));
+  await page.waitForSelector('.tree-card');
+  const card = page.locator('.tree-card[data-tree="MINE_2"]');
+  await expect(card).toHaveClass(/is-selected/);
+  await expect(card.locator('.tc-details')).toBeVisible();
+});
+
+test('the expanded card shows the lifecycle checklist (R1)', async ({ page }) => {
+  await openWithKey(page);
+  await page.waitForSelector('.tree-card');
+  await page.locator('.tree-card .tc-toggle').first().click();
+  const ms = page.locator('.tree-card').first().locator('.tc-milestones li');
+  await expect(ms).toHaveCount(5);
+  await expect(page.locator('.tree-card').first().locator('.tc-milestones')).toContainText('Planted');
+  await expect(page.locator('.tree-card').first().locator('.tc-milestones')).toContainText('QR linked');
+});
+
+test('selecting another card moves the highlight (only one selected)', async ({ page }) => {
+  await openWithKey(page);
+  await page.waitForSelector('.tree-card');
+  await page.locator('.tree-card').nth(0).locator('.tc-meta').click();
+  await page.locator('.tree-card').nth(1).locator('.tc-meta').click();
+  await expect(page.locator('.tree-card.is-selected')).toHaveCount(1);
+  await expect(page.locator('.tree-card').nth(1)).toHaveClass(/is-selected/);
+});
+
+test('ledger link (PR4b) and the lifecycle checklist (R1) coexist on one card', async ({ page }) => {
+  await openWithKey(page);
+  await page.waitForSelector('.tree-card');
+  await page.locator('.tree-card .tc-toggle').first().click();
+  const card = page.locator('.tree-card').first();
+  await expect(card.locator('.tc-milestones li')).toHaveCount(5);          // my feature
+  await expect(card.locator('a[href*="ledger_explorer.html?q="]')).toHaveCount(1); // their feature
 });
