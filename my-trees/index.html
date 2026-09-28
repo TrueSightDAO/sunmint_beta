@@ -84,6 +84,14 @@
       border-radius: 6px; font-size: 0.95rem; font-family: ui-monospace, SFMono-Regular, monospace; }
     .tree-card .tc-meta .tc-txid, .tree-card .tc-details .tc-txid { font-family: ui-monospace, SFMono-Regular, monospace; }
     .footer { text-align: center; font-size: 0.8rem; color: #888; margin-top: 0.5rem; }
+    .tree-card.is-selected { border-color: #1a4d8f; box-shadow: 0 0 0 2px rgba(26, 77, 143, 0.18); background: #f4f8fe; }
+    .tree-card[data-tree] { cursor: pointer; }
+    .tc-ms { margin-top: 0.35rem; }
+    .tc-milestones { list-style: none; margin: 0.15rem 0 0.2rem; padding: 0; }
+    .tc-milestones li { font-size: 0.78rem; color: #555; line-height: 1.65; }
+    .tc-milestones .ok { color: #1e6b34; font-weight: 700; }
+    .tc-milestones .no { color: #b0b0b0; font-weight: 700; }
+    .tc-ms-note { font-size: 0.72rem; color: #888; }
     @media (max-width: 420px) {
       .tree-card img.tc-photo { width: 96px; height: 96px; }
     }
@@ -157,7 +165,9 @@
         filterLabel: 'Filtrar por ID da transação',
         filterPlaceholder: 'ex.: Edgar_20260924 ou o ID completo',
         zeroFiltered: 'Nenhuma árvore corresponde a este filtro.',
-        statusNEW: 'Novo', statusLINKED: 'Vinculada', statusSOLD: 'Vendida', statusINVALID: 'Inválida'
+        statusNEW: 'Novo', statusLINKED: 'Vinculada', statusSOLD: 'Vendida', statusINVALID: 'Inválida',
+        msHeading: 'Ciclo de vida', msPlanted: 'Plantada', msPhoto: 'Foto registrada', msQrLinked: 'QR vinculado', msSigned: 'Assinada', msSold: 'Vendida',
+        msNote: 'Pagamento e monitoramento ficam no registro da DAO, não no feed público.'
       },
       en: {
         pageLabel: 'Page:',
@@ -182,7 +192,9 @@
         filterLabel: 'Filter by transaction request ID',
         filterPlaceholder: 'e.g. Edgar_20260924 or the full ID',
         zeroFiltered: 'No trees match this filter.',
-        statusNEW: 'New', statusLINKED: 'Linked', statusSOLD: 'Sold', statusINVALID: 'Invalid'
+        statusNEW: 'New', statusLINKED: 'Linked', statusSOLD: 'Sold', statusINVALID: 'Invalid',
+        msHeading: 'Lifecycle', msPlanted: 'Planted', msPhoto: 'Photo on record', msQrLinked: 'QR linked', msSigned: 'Signed', msSold: 'Sold',
+        msNote: 'Payment and monitoring live in the DAO record, not the public feed.'
       }
     };
 
@@ -315,30 +327,90 @@
       if (p.program) det.push('<div><strong>' + t('lblProgram') + ':</strong> ' + esc(p.program) + '</div>');
       if (p.submission_source) det.push('<div><strong>' + t('lblSource') + ':</strong> ' + esc(p.submission_source) + '</div>');
       if (p.request_txid) det.push('<div><strong>' + t('lblTxid') + ':</strong> <span class="tc-txid">' + esc(p.request_txid) + '</span></div>');
+      const ms = MyTreesUtils.milestones(p);
+      det.push('<div class="tc-ms"><strong>' + t('msHeading') + ':</strong><ul class="tc-milestones">' +
+        ms.map(function (m) {
+          const mark = m.ok ? '\u2713' : '\u25cb';
+          const lbl = esc(t(m.key)) + (m.detail ? ' (' + esc(m.detail) + ')' : '');
+          return '<li><span class="' + (m.ok ? 'ok' : 'no') + '">' + mark + '</span> ' + lbl + '</li>';
+        }).join('') +
+        '</ul><div class="tc-ms-note">' + esc(t('msNote')) + '</div></div>');
       const detId = 'tc-det-' + idx;
+      const cardId = 'tc-card-' + idx;
       const monitorHref = '/monitor-tree-growth/?tree=' + encodeURIComponent(treeId);
       const ledgerHref = MyTreesUtils.buildLedgerLink(treeId);
       const ledgerLink = ledgerHref
-        ? '<a class="tc-monitor" href="' + esc(ledgerHref) + '" target="_blank" rel="noopener">' + t('ledgerLink') + ' \u2192</a>'
+        ? '<a class="tc-monitor" href="' + esc(ledgerHref) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + t('ledgerLink') + ' \u2192</a>'
         : '';
       const details = '<div class="tc-details" id="' + detId + '" hidden>' + det.join('') +
-        '<a class="tc-monitor" href="' + esc(monitorHref) + '">' + t('monitorThis') + ' \u2192</a>' +
+        '<a class="tc-monitor" href="' + esc(monitorHref) + '" onclick="event.stopPropagation()">' + t('monitorThis') + ' \u2192</a>' +
         ledgerLink + '</div>';
 
-      return '<div class="tree-card">' + photo +
+      return '<div class="tree-card" id="' + cardId + '" data-tree="' + esc(treeId) + '" onclick="onCardClick(event, this)">' + photo +
         '<div class="tc-main">' +
-          '<div class="tc-id"><button type="button" class="tc-toggle" aria-expanded="false" aria-controls="' + detId + '" data-det="' + detId + '" onclick="toggleTreeDetails(this)">' + esc(treeId) + '</button>' + chip + '</div>' +
+          '<div class="tc-id"><button type="button" class="tc-toggle" aria-expanded="false" aria-controls="' + detId + '" data-det="' + detId + '" onclick="toggleTreeDetails(event, this)">' + esc(treeId) + '</button>' + chip + '</div>' +
           '<div class="tc-meta">' + rows.join('<br>') + '</div>' +
           details +
         '</div></div>';
     }
 
-    function toggleTreeDetails(btn) {
-      const el = document.getElementById(btn.getAttribute('data-det'));
-      if (!el) return;
-      const opening = el.hasAttribute('hidden');
-      if (opening) { el.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
-      else { el.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
+    // R1/R2 (Gary 2026-09-28): clicking a tree highlights its card, expands the
+    // details, and reflects the selection in the URL (?tree=<id>) so a reload
+    // scrolls back to the same card, expanded.
+    function setCardExpanded(card, open) {
+      if (!card) return;
+      const det = card.querySelector('.tc-details');
+      const btn = card.querySelector('.tc-toggle');
+      if (det) { if (open) det.removeAttribute('hidden'); else det.setAttribute('hidden', ''); }
+      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      card.classList.toggle('is-selected', !!open);
+    }
+    function clearSelection() {
+      document.querySelectorAll('.tree-card.is-selected').forEach(function (c) { setCardExpanded(c, false); });
+    }
+    function cssEscape(v) { return String(v == null ? '' : v).replace(/["\\]/g, '\\$&'); }
+    function cardFor(treeId) {
+      return document.querySelector('.tree-card[data-tree="' + cssEscape(treeId) + '"]');
+    }
+    function updateTreeParam(treeId) {
+      try {
+        const u = new URL(window.location.href);
+        if (treeId) u.searchParams.set('tree', treeId); else u.searchParams.delete('tree');
+        window.history.replaceState(null, '', u.pathname + u.search + u.hash);
+      } catch (_) { /* URL API unavailable: deep-link degrades to no-op */ }
+    }
+    function selectTree(treeId, opts) {
+      opts = opts || {};
+      const card = cardFor(treeId);
+      if (!card) return false;
+      clearSelection();
+      setCardExpanded(card, true);
+      if (opts.scroll !== false) {
+        try { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        catch (_) { try { card.scrollIntoView(); } catch (__) {} }
+      }
+      if (opts.updateUrl !== false) updateTreeParam(treeId);
+      return true;
+    }
+    function onCardClick(ev, card) {
+      if (!card) return;
+      // A click on the id button is handled by toggleTreeDetails (which stops
+      // propagation); anything else on the card selects the tree.
+      selectTree(card.getAttribute('data-tree'));
+    }
+    function toggleTreeDetails(ev, btn) {
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      const card = btn.closest('.tree-card');
+      if (!card) return;
+      const wasOpen = card.classList.contains('is-selected');
+      clearSelection();
+      if (!wasOpen) selectTree(card.getAttribute('data-tree'));
+      else updateTreeParam('');
+    }
+    function focusTreeFromUrl() {
+      let id = '';
+      try { id = new URL(window.location.href).searchParams.get('tree') || ''; } catch (_) {}
+      if (id) selectTree(id, { updateUrl: false });
     }
 
     async function init() {
@@ -389,7 +461,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
       setLang(currentLang);
-      init();
+      init().then(focusTreeFromUrl);
     });
   </script>
 </body>

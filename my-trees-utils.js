@@ -110,6 +110,24 @@
         return LEDGER_EXPLORER_URL + '?q=' + encodeURIComponent(id);
     }
 
+    /**
+     * Lifecycle milestones derivable from the PUBLIC tree feed ONLY.
+     * Ordered [{key, ok, detail}]. We never invent a state the feed cannot
+     * prove -- e.g. 'paid'/'monitored' live in the DAO ledger, not the public
+     * geojson, so they are deliberately ABSENT rather than guessed.
+     */
+    function milestones(props) {
+        var p = props || {};
+        var st = normalizeStatus(p.status);
+        return [
+            { key: 'msPlanted', ok: !!_str(p.last_measured).trim(), detail: _str(p.last_measured).slice(0, 10) },
+            { key: 'msPhoto', ok: !!_str(p.photo_url).trim(), detail: '' },
+            { key: 'msQrLinked', ok: !!_str(p.qr_code).trim(), detail: _str(p.qr_code).trim() },
+            { key: 'msSigned', ok: !!_str(p.request_txid).trim(), detail: '' },
+            { key: 'msSold', ok: st === 'SOLD', detail: '' }
+        ];
+    }
+
     var utils = {
         LEDGER_EXPLORER_URL: LEDGER_EXPLORER_URL,
         buildLedgerLink: buildLedgerLink,
@@ -118,6 +136,7 @@
         filterByQuery: filterByQuery,
         sortByLastMeasured: sortByLastMeasured,
         normalizeStatus: normalizeStatus,
+        milestones: milestones,
         countWithPkHash: countWithPkHash,
         KNOWN_STATUSES: KNOWN_STATUSES
     };

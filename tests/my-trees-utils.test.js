@@ -154,7 +154,38 @@ function feat(pk, id, extra) {
         assert.strictEqual(M.buildLedgerLink('a b/c'),
             'https://beta.dapp.truesight.me/ledger_explorer.html?q=a%20b%2Fc');
     });
+    await test('milestones: a fully-linked tree ticks planted/photo/qr/signed', () => {
+        const ms = M.milestones({ status: 'LINKED', last_measured: '2026-09-01T00:00:00Z',
+            photo_url: 'https://x/p.jpg', qr_code: 'QR1', request_txid: 'SIG' });
+        const ok = ms.filter(m => m.ok).map(m => m.key);
+        assert.deepStrictEqual(ok, ['msPlanted', 'msPhoto', 'msQrLinked', 'msSigned']);
+        assert.strictEqual(ms.find(m => m.key === 'msSold').ok, false);
+    });
 
+    await test('milestones: a bare NEW tree ticks only what the feed can prove', () => {
+        const ms = M.milestones({ status: 'NEW', last_measured: '2026-09-01T00:00:00Z', photo_url: 'https://x/p.jpg' });
+        assert.deepStrictEqual(ms.filter(m => m.ok).map(m => m.key), ['msPlanted', 'msPhoto']);
+    });
+
+    await test('milestones: SOLD ticks msSold; planted carries the date as detail', () => {
+        const ms = M.milestones({ status: 'SOLD', last_measured: '2026-09-01T00:00:00Z' });
+        assert.strictEqual(ms.find(m => m.key === 'msSold').ok, true);
+        assert.strictEqual(ms.find(m => m.key === 'msPlanted').detail, '2026-09-01');
+    });
+
+    await test('milestones: never invents paid/monitored (not in the public feed)', () => {
+        const keys = M.milestones({ status: 'LINKED' }).map(m => m.key);
+        assert.deepStrictEqual(keys, ['msPlanted', 'msPhoto', 'msQrLinked', 'msSigned', 'msSold']);
+        assert.ok(!/paid|monitor/i.test(keys.join(',')));
+    });
+
+    await test('milestones: null/undefined props degrade to a fully-empty checklist', () => {
+        for (const v of [null, undefined, {}]) {
+            const ms = M.milestones(v);
+            assert.strictEqual(ms.length, 5);
+            assert.strictEqual(ms.filter(m => m.ok).length, 0);
+        }
+    });
 
     console.log('\nmy-trees-utils: ' + passed + ' passed' + (process.exitCode ? ', FAILURES' : ', 0 failed'));
 })();

@@ -89,6 +89,23 @@ class TestMyTreesI18n(unittest.TestCase):
         for key in ("lblSpecies", "lblMeasured", "lblSource", "monitorThis", "countMany"):
             self.assertIn(f"t('{key}')", self.html, f"{key} must go through t()")
 
+    def test_lifecycle_milestones_i18n(self):
+        for key in ("msHeading", "msPlanted", "msPhoto", "msQrLinked", "msSigned", "msSold", "msNote"):
+            self.assertGreaterEqual(
+                self.html.count(key + ":"), 2, f"{key} must exist in both pt and en"
+            )
+        self.assertIn("MyTreesUtils.milestones(", self.html)
+        self.assertIn("tc-milestones", self.html)
+
+    def test_click_highlights_and_deep_links(self):
+        self.assertIn('data-tree="', self.html)
+        self.assertIn("is-selected", self.html)
+        self.assertRegex(self.html, r"function selectTree\s*\(")
+        self.assertIn("updateTreeParam(", self.html)
+        self.assertIn("searchParams.set('tree'", self.html)
+        self.assertRegex(self.html, r"function focusTreeFromUrl\s*\(")
+        self.assertIn("init().then(focusTreeFromUrl)", self.html)
+
     def test_txid_is_shown_and_filterable(self):
         # Gary (2026-09-28): My Trees must SHOW each tree's transaction request id
         # and FILTER by it via a text box. Guard the whole chain so it cannot
