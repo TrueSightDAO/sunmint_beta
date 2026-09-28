@@ -76,9 +76,31 @@
         }, 0);
     }
 
+    /**
+     * Keep features whose tree_id or request_txid CONTAINS the query
+     * (case-insensitive). Unlike filterTreesByPkHash, a BLANK query returns the
+     * whole list: this backs a free-text filter box, where "empty" means
+     * "no filter", not "own nothing". Never touches raw key material.
+     */
+    function featureMatchesQuery(feature, query) {
+        var q = _str(query).trim().toLowerCase();
+        if (!q) return true;
+        var p = (feature && feature.properties) || {};
+        return _str(p.request_txid).toLowerCase().indexOf(q) >= 0
+            || _str(p.tree_id).toLowerCase().indexOf(q) >= 0;
+    }
+
+    function filterByQuery(features, query) {
+        var list = Array.isArray(features) ? features : [];
+        var q = _str(query).trim().toLowerCase();
+        if (!q) return list.slice();
+        return list.filter(function (f) { return featureMatchesQuery(f, q); });
+    }
+
     var utils = {
         featureMatchesPkHash: featureMatchesPkHash,
         filterTreesByPkHash: filterTreesByPkHash,
+        filterByQuery: filterByQuery,
         sortByLastMeasured: sortByLastMeasured,
         normalizeStatus: normalizeStatus,
         countWithPkHash: countWithPkHash,

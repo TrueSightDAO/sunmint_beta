@@ -89,6 +89,31 @@ class TestMyTreesI18n(unittest.TestCase):
         for key in ("lblSpecies", "lblMeasured", "lblSource", "monitorThis", "countMany"):
             self.assertIn(f"t('{key}')", self.html, f"{key} must go through t()")
 
+    def test_txid_is_shown_and_filterable(self):
+        # Gary (2026-09-28): My Trees must SHOW each tree's transaction request id
+        # and FILTER by it via a text box. Guard the whole chain so it cannot
+        # silently regress to ids-only cards.
+        for key in ("lblTxid", "filterLabel", "filterPlaceholder", "zeroFiltered"):
+            self.assertGreaterEqual(
+                self.html.count(key + ":"), 2, f"{key} must exist in both pt and en"
+            )
+        # the filter box exists and is WIRED (the oninput attribute, not merely
+        # the leftover function definition)
+        self.assertIn('id="txidFilter"', self.html)
+        self.assertIn('oninput="onFilterInput()"', self.html)
+        # the card renders the txid (row + details) via the i18n label
+        self.assertGreaterEqual(
+            self.html.count("t('lblTxid')"), 2, "txid must render in row and details"
+        )
+        # rendering routes through filterByQuery so the box actually filters,
+        # and the list rendered is the FILTERED set -- not the unfiltered input.
+        self.assertIn("MyTreesUtils.filterByQuery(", self.html)
+        self.assertIn(
+            "$('treeList').innerHTML = shown.map((f, i) => treeCard(f, i)).join('');",
+            self.html,
+            "the card list must render filterByQuery()'s output, not the raw set",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
