@@ -3,7 +3,7 @@
 // copies served only when the network is unreachable, so the farmer app
 // still loads in the field with no signal.
 
-const CACHE_NAME = 'sunmint-cache-v2';
+const CACHE_NAME = 'sunmint-cache-v3';
 
 const URLS_TO_CACHE = [
   './',
@@ -12,6 +12,7 @@ const URLS_TO_CACHE = [
   './limites-da-fazenda/index.html',
   './instrucoes/index.html',
   './instrucoes/send-as-file-tip.png',
+  './my-trees/index.html',
   // Data JSONs pre-cached so even a first-ever offline visit has farms/plots.
   // Network-first still serves fresh copies online; these are the offline floor.
   'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/farms/index.json',

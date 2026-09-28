@@ -144,6 +144,7 @@
       <option value="limites" data-i18n="navLimites">Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes" selected>Instruções</option>
       <option value="payout" data-i18n="navPayout">Registrar Pagamento</option>
+      <option value="myTrees" data-i18n="navMyTrees">Minhas Árvores</option>
     </select>
   </div>
 
@@ -208,7 +209,7 @@
         navPlant: "Registrar Plantio",
         navMonitor: "Monitorar Árvore",
         navInstrucoes: "Instruções",
-        navLimites: "Limites da Fazenda", navPayout:"Registrar Pagamento",
+        navLimites: "Limites da Fazenda", navPayout:"Registrar Pagamento", navMyTrees: 'Minhas Árvores',
         title: "Instruções",
         intro: "Como enviar fotos e vídeos da fazenda de um jeito que preserva a localização (GPS).",
         sec1Title: "1. Envie como ARQUIVO, não como foto",
@@ -243,7 +244,7 @@
         navPlant: "Plant Tree",
         navMonitor: "Monitor Tree",
         navInstrucoes: "Instructions",
-        navLimites: "Farm Boundaries", navPayout:"Register Payout",
+        navLimites: "Farm Boundaries", navPayout:"Register Payout", navMyTrees: 'My Trees',
         title: "Instructions",
         intro: "How to send farm photos and videos in a way that preserves the location (GPS).",
         sec1Title: "1. Send as a FILE, not as a photo",
@@ -304,7 +305,8 @@
       } else {
         window.location.href = '/instrucoes/';
       }
-    }
+    
+      if (document.getElementById('pageNav').value === 'myTrees') { window.location.href = '/my-trees/'; return; }}
 
     setLang(currentLang);
   </script>

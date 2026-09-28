@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="description" content="Sunmint - Minhas Árvores: veja as árvores vinculadas à sua identidade de plantio, sem enviar sua chave a nenhum servidor.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sunmint - Minhas Árvores</title>
+
+  <meta property="og:title" content="Sunmint - Minhas Árvores">
+  <meta property="og:description" content="Veja as árvores vinculadas à sua identidade de plantio.">
+  <meta property="og:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+  <meta property="og:url" content="https://cfr.truesight.me/my-trees/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TrueSight DAO">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sunmint - Minhas Árvores">
+  <meta name="twitter:description" content="Veja as árvores vinculadas à sua identidade de plantio.">
+  <meta name="twitter:image" content="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+
+  <link rel="icon" type="image/png" href="https://github.com/TrueSightDAO/.github/blob/main/assets/20240612_truesight_dao_logo_square.png?raw=true">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      margin: 1rem; padding: 1rem; min-height: 100vh; box-sizing: border-box;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 640px; width: 100%; background-color: white; padding: 1rem;
+      border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;
+    }
+    h1 { font-size: 1.8rem; margin: 0.5rem 0 0.2rem; text-align: center; }
+    .intro { color: #555; text-align: center; margin: 0 0 1rem; font-size: 0.95rem; }
+    .lang-toggle { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .lang-toggle button { background: none; border: 1px solid #ccc; border-radius: 4px;
+      padding: 0.3rem 0.8rem; cursor: pointer; font-size: 0.9rem; color: #555;
+      width: auto; max-width: none; margin: 0; }
+    .lang-toggle button.active { background-color: #2e7d32; color: white; border-color: #2e7d32; }
+    .nav-dropdown { text-align: center; margin-bottom: 1rem; }
+    .nav-dropdown select { max-width: 300px; display: inline-block; padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+    .nav-dropdown label { font-weight: bold; margin-right: 0.4rem; display: inline; }
+    .identity { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9rem;
+      background: #f2f2f2; border: 1px solid #e3e3e3; border-radius: 6px;
+      padding: 0.5rem 0.7rem; margin: 0.4rem 0 0.8rem; text-align: center; word-break: break-all; }
+    .status { text-align: center; font-size: 0.92rem; margin: 0.4rem 0 0.8rem; min-height: 1.2rem; }
+    .status.error { color: #b00020; }
+    .status.info { color: #555; }
+    .banner { border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.4rem 0 0.9rem; font-size: 0.88rem; line-height: 1.5; }
+    .banner.warn { background: #fff8e1; border: 1px solid #f0e0a8; color: #7a5c00; }
+    .banner.note { background: #eef4fc; border: 1px solid #cfe0f5; color: #1a4d8f; }
+    .count { text-align: center; font-size: 0.9rem; color: #444; margin: 0.2rem 0 0.8rem; }
+    .tree-card { border: 1px solid #d7d7d7; border-radius: 8px; background: #fbfbfb;
+      padding: 0.6rem 0.7rem; margin: 0.4rem 0; display: flex; gap: 0.7rem; }
+    .tree-card img.tc-photo { width: 128px; height: 128px; object-fit: cover; border-radius: 6px;
+      border: 1px solid #ddd; flex: 0 0 auto; background: #eee; }
+    .tree-card .tc-main { flex: 1; min-width: 0; }
+    .tree-card .tc-id { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem; color: #111; word-break: break-all; }
+    .tree-card .tc-meta { font-size: 0.78rem; color: #666; margin-top: 0.15rem; line-height: 1.5; }
+    .tree-card .tc-meta a { color: #1a4d8f; }
+    .chip { display: inline-block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+      border-radius: 10px; padding: 0.1rem 0.5rem; margin-left: 0.3rem; vertical-align: middle;
+      background: #eee; color: #555; }
+    .chip.LINKED { background: #e6f4ea; color: #1e6b34; }
+    .chip.NEW { background: #eef4fc; color: #1a4d8f; }
+    .chip.INVALID { background: #fdecea; color: #b00020; }
+    .chip.SOLD { background: #f3e8fd; color: #6a1b9a; }
+.tree-card .tc-toggle { background: none; border: 0; padding: 0; margin: 0; font: inherit;
+      font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem; color: #1a4d8f;
+      text-decoration: underline; cursor: pointer; text-align: left; }
+    .tree-card .tc-toggle:hover { color: #0d2f5c; }
+    .tree-card .tc-details { margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed #ddd;
+      font-size: 0.8rem; color: #444; line-height: 1.55; }
+    .tree-card .tc-details[hidden] { display: none; }
+    .tree-card .tc-monitor { display: inline-block; margin-top: 0.45rem; font-size: 0.8rem;
+      color: #2e7d32; font-weight: 600; text-decoration: none; }
+    .tree-card .tc-monitor:hover { text-decoration: underline; }
+    .footer { text-align: center; font-size: 0.8rem; color: #888; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+
+  <div class="lang-toggle">
+    <button id="langPt" class="active" onclick="setLang('pt')">Português</button>
+    <button id="langEn" onclick="setLang('en')">English</button>
+  </div>
+
+  <div class="nav-dropdown">
+    <label for="pageNav" data-i18n="pageLabel">Página:</label>
+    <select id="pageNav" onchange="onNavChange()">
+      <option value="plant" data-i18n="navPlant">Plantar Árvore</option>
+      <option value="monitor" data-i18n="navMonitor">Monitorar Árvore</option>
+      <option value="limites" data-i18n="navLimites">Limites da Fazenda</option>
+      <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
+      <option value="payout" data-i18n="navPayout">Registrar Pagamento</option>
+      <option value="myTrees" selected data-i18n="navMyTrees">Minhas Árvores</option>
+    </select>
+  </div>
+
+  <div class="container">
+    <h1 data-i18n="title">Minhas Árvores</h1>
+    <p class="intro" data-i18n="intro">Árvores vinculadas à sua identidade de plantio neste dispositivo.</p>
+
+    <div class="identity" id="identityValue">…</div>
+    <div class="status" id="status"></div>
+    <div id="banner"></div>
+    <div class="count" id="count"></div>
+
+    <div id="treeList"></div>
+
+    <div class="footer" data-i18n="footer">Sua chave nunca sai deste dispositivo. Nada é enviado a um servidor.</div>
+  </div>
+
+  <script src="../payout-registration-utils.js"></script>
+  <script src="../my-trees-utils.js"></script>
+  <script>
+    // ── i18n ────────────────────────────────────────────────────────────────
+    const I18N = {
+      pt: {
+        pageLabel: 'Página:',
+        navPlant: 'Plantar Árvore', navMonitor: 'Monitorar Árvore', navLimites: 'Limites da Fazenda',
+        navInstrucoes: 'Instruções', navPayout: 'Registrar Pagamento', navMyTrees: 'Minhas Árvores',
+        title: 'Minhas Árvores',
+        intro: 'Árvores vinculadas à sua identidade de plantio neste dispositivo.',
+        noKey: 'Nenhuma identidade de plantio encontrada neste dispositivo.',
+        noKeyHint: 'Plante uma árvore primeiro para criar sua identidade; depois volte aqui.',
+        deriving: 'Derivando sua identidade…',
+        loading: 'Carregando a lista pública de árvores…',
+        feedNotRebuilt: 'A lista pública de árvores ainda não foi reconstruída com dados de identidade. Volte após a próxima reconstrução.',
+        feedError: 'Não foi possível carregar a lista pública de árvores.',
+        zero: 'Nenhuma árvore encontrada para a sua identidade.',
+        countOne: '1 árvore encontrada.',
+        countMany: '{n} árvores encontradas.',
+        footer: 'Sua chave nunca sai deste dispositivo. Nada é enviado a um servidor.',
+        lblSpecies: 'Espécie', lblQR: 'QR', lblMeasured: 'Última medição', lblProgram: 'Programa', lblPhoto: 'Foto'
+      },
+      en: {
+        pageLabel: 'Page:',
+        navPlant: 'Plant Tree', navMonitor: 'Monitor Tree', navLimites: 'Farm Boundaries',
+        navInstrucoes: 'Instructions', navPayout: 'Register Payout', navMyTrees: 'My Trees',
+        title: 'My Trees',
+        intro: 'Trees bound to your planting identity on this device.',
+        noKey: 'No planting identity found on this device.',
+        noKeyHint: 'Plant a tree first to create your identity, then return here.',
+        deriving: 'Deriving your identity…',
+        loading: 'Loading the public tree list…',
+        feedNotRebuilt: 'The public tree list has not been rebuilt with identity data yet. Please check back after the next rebuild.',
+        feedError: 'Could not load the public tree list.',
+        zero: 'No trees found for your identity.',
+        countOne: '1 tree found.',
+        countMany: '{n} trees found.',
+        footer: 'Your key never leaves this device. Nothing is sent to a server.',
+        lblSpecies: 'Species', lblQR: 'QR', lblMeasured: 'Last measured', lblProgram: 'Program', lblPhoto: 'Photo',
+        lblStatus: 'Status', lblSource: 'Submission source', monitorThis: 'Monitor this tree'
+      }
+    };
+
+    const DEFAULT_LANG = (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'pt';
+    let currentLang = localStorage.getItem('sunmint_lang') || DEFAULT_LANG;
+
+    function t(key) {
+      const d = I18N[currentLang] || I18N.pt;
+      return (key in d) ? d[key] : key;
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('sunmint_lang', lang);
+      document.getElementById('langPt').classList.toggle('active', lang === 'pt');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        el.textContent = t(el.getAttribute('data-i18n'));
+      });
+    }
+
+    function onNavChange() {
+      var v = document.getElementById('pageNav').value;
+      if (v === 'plant') location.href = '/';
+      else if (v === 'monitor') location.href = '/monitor-tree-growth/';
+      else if (v === 'limites') location.href = '/limites-da-fazenda/';
+      else if (v === 'instrucoes') location.href = '/instrucoes/';
+      else if (v === 'payout') location.href = '/payout_registration.html';
+      else location.href = '/my-trees/';
+    }
+
+    // ── endpoints ──────────────────────────────────────────────────────────
+    const TREE_INDEX_URLS = [
+      'https://raw.githubusercontent.com/TrueSightDAO/sunmint/main/trees/index.geojson',
+      'https://sunmint.truesight.me/trees/index.geojson',
+      'https://beta.sunmint.truesight.me/trees/index.geojson'
+    ];
+
+    function $(id) { return document.getElementById(id); }
+    function setStatus(msg, cls) { const s = $('status'); s.textContent = msg || ''; s.className = 'status' + (cls ? ' ' + cls : ''); }
+    function esc(v) { return (v === null || v === undefined) ? '' : String(v).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    async function fetchFeed() {
+      let lastErr = null;
+      for (const url of TREE_INDEX_URLS) {
+        try {
+          const r = await fetch(url, { cache: 'no-cache' });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return await r.json();
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error('feed unavailable');
+    }
+
+    function treeCard(f, idx) {
+      const p = f.properties || {};
+      const status = MyTreesUtils.normalizeStatus(p.status);
+      const chip = status ? '<span class="chip ' + status + '">' + esc(status) + '</span>' : (p.status ? '<span class="chip">' + esc(p.status) + '</span>' : '');
+      const photo = p.photo_url
+        ? '<img class="tc-photo" src="' + esc(p.photo_url) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'
+        : '';
+      const rows = [];
+      if (p.species) rows.push(t('lblSpecies') + ': ' + esc(p.species));
+      if (p.qr_code) rows.push(t('lblQR') + ': ' + esc(p.qr_code));
+      if (p.last_measured) rows.push(t('lblMeasured') + ': ' + esc(String(p.last_measured).slice(0, 10)));
+      if (p.program) rows.push(t('lblProgram') + ': ' + esc(p.program));
+
+      const treeId = String(p.tree_id || '');
+      const det = [];
+      if (p.status) det.push('<div><strong>' + t('lblStatus') + ':</strong> ' + esc(p.status) + '</div>');
+      if (p.species) det.push('<div><strong>' + t('lblSpecies') + ':</strong> ' + esc(p.species) + '</div>');
+      if (p.qr_code) det.push('<div><strong>' + t('lblQR') + ':</strong> ' + esc(p.qr_code) + '</div>');
+      if (p.last_measured) det.push('<div><strong>' + t('lblMeasured') + ':</strong> ' + esc(String(p.last_measured).slice(0, 10)) + '</div>');
+      if (p.program) det.push('<div><strong>' + t('lblProgram') + ':</strong> ' + esc(p.program) + '</div>');
+      if (p.submission_source) det.push('<div><strong>' + t('lblSource') + ':</strong> ' + esc(p.submission_source) + '</div>');
+      const detId = 'tc-det-' + idx;
+      const monitorHref = '/monitor-tree-growth/?tree=' + encodeURIComponent(treeId);
+      const details = '<div class="tc-details" id="' + detId + '" hidden>' + det.join('') +
+        '<a class="tc-monitor" href="' + esc(monitorHref) + '">' + t('monitorThis') + ' \u2192</a></div>';
+
+      return '<div class="tree-card">' + photo +
+        '<div class="tc-main">' +
+          '<div class="tc-id"><button type="button" class="tc-toggle" aria-expanded="false" aria-controls="' + detId + '" data-det="' + detId + '" onclick="toggleTreeDetails(this)">' + esc(treeId) + '</button>' + chip + '</div>' +
+          '<div class="tc-meta">' + rows.join('<br>') + '</div>' +
+          details +
+        '</div></div>';
+    }
+
+    function toggleTreeDetails(btn) {
+      const el = document.getElementById(btn.getAttribute('data-det'));
+      if (!el) return;
+      const opening = el.hasAttribute('hidden');
+      if (opening) { el.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
+      else { el.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
+    }
+
+    async function init() {
+      setStatus(t('deriving'));
+      let pub = '';
+      try { pub = localStorage.getItem('publicKey') || ''; } catch (_) { pub = ''; }
+
+      if (!pub) {
+        $('identityValue').textContent = '—';
+        setStatus(t('noKey'), 'error');
+        $('banner').innerHTML = '<div class="banner warn">' + esc(t('noKeyHint')) + '</div>';
+        return;
+      }
+
+      let myHash = '';
+      try {
+        myHash = await PayoutRegistrationUtils.derivePkHash(pub);
+      } catch (e) {
+        setStatus(t('noKey'), 'error');
+        return;
+      }
+      $('identityValue').textContent = PayoutRegistrationUtils.maskPkHash(myHash);
+
+      setStatus(t('loading'), 'info');
+      let feed;
+      try {
+        feed = await fetchFeed();
+      } catch (e) {
+        setStatus(t('feedError'), 'error');
+        return;
+      }
+
+      const features = (feed && feed.features) || [];
+      if (MyTreesUtils.countWithPkHash(features) === 0) {
+        setStatus('');
+        $('banner').innerHTML = '<div class="banner note">' + esc(t('feedNotRebuilt')) + '</div>';
+        return;
+      }
+
+      const mine = MyTreesUtils.sortByLastMeasured(MyTreesUtils.filterTreesByPkHash(features, myHash));
+      if (mine.length === 0) {
+        setStatus(t('zero'), 'info');
+        return;
+      }
+      setStatus('');
+      $('count').textContent = (mine.length === 1) ? t('countOne') : t('countMany').replace('{n}', mine.length);
+      $('treeList').innerHTML = mine.map((f, i) => treeCard(f, i)).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      setLang(currentLang);
+      init();
+    });
+  </script>
+</body>
+</html>

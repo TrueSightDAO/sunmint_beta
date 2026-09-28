@@ -145,6 +145,7 @@
       <option value="limites" data-i18n="navLimites">Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
       <option value="payout" data-i18n="navPayout">Registrar Pagamento</option>
+      <option value="myTrees" data-i18n="navMyTrees">Minhas Árvores</option>
     </select>
   </div>
 
@@ -246,7 +247,7 @@
         navPlant: 'Registrar Plantio',
         navMonitor: 'Monitorar Árvore',
         navInstrucoes: 'Instruções',
-        navLimites: 'Limites da Fazenda', navPayout:'Registrar Pagamento',
+        navLimites: 'Limites da Fazenda', navPayout:'Registrar Pagamento', navMyTrees: 'Minhas Árvores',
         monitorHeading: 'Registrar medição da árvore',
         monitorHint: 'Selecione a árvore, tire a foto de perto com o cartão de calibração contra o tronco (1,3 m de altura) e uma foto de contexto da árvore inteira.',
         treeLabel: 'Árvore próxima',
@@ -334,7 +335,7 @@
         navPlant: 'Plant Tree',
         navMonitor: 'Monitor Tree',
         navInstrucoes: 'Instructions',
-        navLimites: 'Farm Boundaries', navPayout:'Register Payout',
+        navLimites: 'Farm Boundaries', navPayout:'Register Payout', navMyTrees: 'My Trees',
         monitorHeading: 'Record tree measurement',
         monitorHint: 'Select the tree, take a close-up photo with the calibration card against the trunk (1.3 m height), and a context photo of the whole tree.',
         treeLabel: 'Nearby tree',
@@ -1232,7 +1233,8 @@
       } else {
         window.location.href = '/monitor-tree-growth/';
       }
-    }
+    
+      if (document.getElementById('pageNav').value === 'myTrees') { window.location.href = '/my-trees/'; return; }}
 
     // ── auto-flush queued submissions when connectivity returns ───────
     window.addEventListener('online', flushQueue);
