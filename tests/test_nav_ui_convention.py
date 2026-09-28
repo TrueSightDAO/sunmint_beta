@@ -21,14 +21,16 @@ PAGES = [
     "monitor-tree-growth/index.html",
     "instrucoes/index.html",
     "limites-da-fazenda/index.html",
+    "my-trees/index.html",
 ]
-NAV_OPTIONS = ["plant", "monitor", "limites", "instrucoes", "payout"]
+NAV_OPTIONS = ["plant", "monitor", "limites", "instrucoes", "payout", "myTrees"]
 # page -> the option that should be selected on it
 EXPECTED_SELECTED = {
     "index.html": "plant",
     "monitor-tree-growth/index.html": "monitor",
     "instrucoes/index.html": "instrucoes",
     "limites-da-fazenda/index.html": "limites",
+    "my-trees/index.html": "myTrees",
 }
 REFERENCE_CSS = {
     ".nav-dropdown": ["margin-bottom: 1rem", "text-align: center"],
@@ -77,7 +79,7 @@ class TestNavUI(unittest.TestCase):
     def test_selected_option_matches_page(self):
         for page, expected in EXPECTED_SELECTED.items():
             html = read(page)
-            sel = re.search(r'value="([a-z]+)"[^>]*selected', html)
+            sel = re.search(r'value="([A-Za-z]+)"[^>]*selected', html)
             self.assertIsNotNone(sel, page)
             self.assertEqual(sel.group(1), expected, page)
 
@@ -91,8 +93,11 @@ class TestNavUI(unittest.TestCase):
     def test_i18n_nav_keys_in_pt_and_en(self):
         for page in PAGES:
             html = read(page)
+            # Most option values are single lowercase words -> nav<Capitalized>.
+            # camelCase values (e.g. myTrees) use an explicit key.
+            NAV_KEY = {"myTrees": "navMyTrees"}
             for opt in NAV_OPTIONS:
-                key = f"nav{opt.capitalize()}"
+                key = NAV_KEY.get(opt, f"nav{opt.capitalize()}")
                 self.assertGreaterEqual(
                     html.count(key), 2, f"{page}: {key} in both dicts"
                 )

@@ -172,6 +172,65 @@
         ].join('\n');
     }
 
+    // --- pk_hash (identity) ------------------------------------------------
+
+    /** base64 -> Uint8Array (browser atob, Node Buffer). */
+    function base64ToBytes(b64) {
+        var s = _str(b64).trim().replace(/\s+/g, '');
+        if (typeof atob === 'function') {
+            var bin = atob(s);
+            var out = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+            return out;
+        }
+        return new Uint8Array(Buffer.from(s, 'base64'));
+    }
+
+    /** Uint8Array -> unpadded base64url (the DAO's pk_hash alphabet). */
+    function bytesToBase64Url(u8) {
+        var b64;
+        if (typeof btoa === 'function') {
+            var bin = '';
+            for (var i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+            b64 = btoa(bin);
+        } else {
+            b64 = Buffer.from(u8).toString('base64');
+        }
+        return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    /** Format a raw SHA-256 digest as the DAO's pk_hash identifier. */
+    function pkHashFromSha256(sha256Bytes) {
+        return 'pk-' + bytesToBase64Url(sha256Bytes).slice(0, 12);
+    }
+
+    /**
+     * Derive pk_hash from a base64 SPKI public key (as stored by the planting
+     * app in localStorage['publicKey']). Async (WebCrypto digest).
+     */
+    async function derivePkHash(publicKeyBase64) {
+        var b64 = _str(publicKeyBase64).trim();
+        if (!b64) return '';
+        var der = base64ToBytes(b64);
+        var subtle = (typeof crypto !== 'undefined' && crypto && crypto.subtle) ||
+                     (global && global.crypto && global.crypto.subtle) || null;
+        if (!subtle) throw new Error('WebCrypto unavailable');
+        var digest = await subtle.digest('SHA-256', der);
+        return pkHashFromSha256(new Uint8Array(digest));
+    }
+
+    /** pk_hash is a non-secret public identifier; show a short confirmation form. */
+    function maskPkHash(value) {
+        var s = _str(value).trim();
+        if (!s) return '';
+        if (s.length <= 10) return s;
+        return s.slice(0, 7) + '\u2026' + s.slice(-4);
+    }
+
+    function isValidPkHash(value) {
+        return /^pk-[A-Za-z0-9_-]{12}$/.test(_str(value).trim());
+    }
+
     var utils = {
         TYPES: TYPES,
         isValidCpf: isValidCpf,
@@ -182,6 +241,12 @@
         detectPixKeyType: detectPixKeyType,
         validatePixKey: validatePixKey,
         maskPixKey: maskPixKey,
+        base64ToBytes: base64ToBytes,
+        bytesToBase64Url: bytesToBase64Url,
+        pkHashFromSha256: pkHashFromSha256,
+        derivePkHash: derivePkHash,
+        maskPkHash: maskPkHash,
+        isValidPkHash: isValidPkHash,
         buildPayoutRegistrationPayload: buildPayoutRegistrationPayload,
         buildRedactedSummary: buildRedactedSummary
     };

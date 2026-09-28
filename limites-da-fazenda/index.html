@@ -78,6 +78,7 @@
       <option value="limites" data-i18n="navLimites" selected>Limites da Fazenda</option>
       <option value="instrucoes" data-i18n="navInstrucoes">Instruções</option>
       <option value="payout" data-i18n="navPayout">Registrar Pagamento</option>
+      <option value="myTrees" data-i18n="navMyTrees">Minhas Árvores</option>
     </select>
   </div>
 
@@ -185,7 +186,7 @@
 
     const STRINGS = {
       'pt': {
-        navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navLimites:'Limites da Fazenda',navPayout:'Registrar Pagamento', navInstrucoes:'Instruções',
+        navPlant:'Registrar Plantio', navMonitor:'Monitorar Árvore', navLimites:'Limites da Fazenda',navPayout:'Registrar Pagamento', navMyTrees: 'Minhas Árvores', navInstrucoes:'Instruções',
         bHeading:'Enviar fotos dos limites da fazenda', bHint:'Caminhe pelos cantos da fazenda (pilar, cerca, beira da estrada) e tire fotos. O GPS da foto marca o limite.',
         farmLabel:'Lote:', farmLoading:'Carregando lotes...', plotTypeLabel:'Tipo de lote (*):', plotTypeBlank:'- (nao classificado)', plotTypeRestoration:'restauracao', plotTypeMature:'maduro', plotTypeMaturing:'em maturacao', plotTypeEnrichment:'enriquecimento', plotTypeResearch:'pesquisa', plotTypeNursery:'viveiro', plotTypeInfrastructure:'infraestrutura', newFarmLabel:'Nome do novo lote:', newFarmPh:'Ex: Sítio São João',
         photoLabel:'Fotos/vídeos dos limites:', removePhoto:'Remover', submitLabel:'Enviar limites',
@@ -204,7 +205,7 @@
         downloadHeading:'Baixe o aplicativo Android', downloadHint:'Prefere o aplicativo nativo? Funciona sem internet e salva os registros no seu celular.', downloadButton:'Baixar APK (Android)'
       },
       'en': {
-        navPlant:'Register Planting', navMonitor:'Monitor Tree', navLimites:'Farm Boundaries',navPayout:'Register Payout', navInstrucoes:'Instructions',
+        navPlant:'Register Planting', navMonitor:'Monitor Tree', navLimites:'Farm Boundaries',navPayout:'Register Payout', navMyTrees: 'My Trees', navInstrucoes:'Instructions',
         bHeading:'Send farm boundary photos', bHint:'Walk the farm corners (post, fence, roadside) and take photos. The photo GPS marks the boundary.',
         farmLabel:'Plot:', farmLoading:'Loading plots...', plotTypeLabel:'Plot type (*):', plotTypeBlank:'- (unclassified)', plotTypeRestoration:'restoration', plotTypeMature:'mature', plotTypeMaturing:'maturing', plotTypeEnrichment:'enrichment', plotTypeResearch:'research', plotTypeNursery:'nursery', plotTypeInfrastructure:'infrastructure', newFarmLabel:'New plot name:', newFarmPh:'E.g. Sítio São João',
         photoLabel:'Boundary photos/videos:', removePhoto:'Remove', submitLabel:'Send boundaries',
@@ -885,7 +886,8 @@
       else if (select.value === 'monitor') window.location.href = '/monitor-tree-growth/';
       else if (select.value === 'limites') window.location.href = '/limites-da-fazenda/';
       else if (select.value === 'instrucoes') window.location.href = '/instrucoes/';
-    }
+    
+      if (document.getElementById('pageNav').value === 'myTrees') { window.location.href = '/my-trees/'; return; }}
 
     setLang(currentLang);
     renderEmailSection();
