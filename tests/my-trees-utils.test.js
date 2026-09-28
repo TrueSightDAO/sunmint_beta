@@ -140,5 +140,21 @@ function feat(pk, id, extra) {
         assert.strictEqual(M.filterByQuery(feed, 'SIG').length, 1);
     });
 
+    await test('buildLedgerLink: deep-links the Ledger Explorer for a tree id', async () => {
+        assert.strictEqual(M.buildLedgerLink('Edgar_20260821175134_006'),
+            'https://beta.dapp.truesight.me/ledger_explorer.html?q=Edgar_20260821175134_006');
+    });
+    await test('buildLedgerLink: empty / whitespace / null yields ""', async () => {
+        assert.strictEqual(M.buildLedgerLink(''), '');
+        assert.strictEqual(M.buildLedgerLink('   '), '');
+        assert.strictEqual(M.buildLedgerLink(null), '');
+        assert.strictEqual(M.buildLedgerLink(undefined), '');
+    });
+    await test('buildLedgerLink: encodes unsafe chars in the tree id', async () => {
+        assert.strictEqual(M.buildLedgerLink('a b/c'),
+            'https://beta.dapp.truesight.me/ledger_explorer.html?q=a%20b%2Fc');
+    });
+
+
     console.log('\nmy-trees-utils: ' + passed + ' passed' + (process.exitCode ? ', FAILURES' : ', 0 failed'));
 })();
