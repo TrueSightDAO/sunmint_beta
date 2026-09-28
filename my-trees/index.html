@@ -138,7 +138,8 @@
         countOne: '1 árvore encontrada.',
         countMany: '{n} árvores encontradas.',
         footer: 'Sua chave nunca sai deste dispositivo. Nada é enviado a um servidor.',
-        lblSpecies: 'Espécie', lblQR: 'QR', lblMeasured: 'Última medição', lblProgram: 'Programa', lblPhoto: 'Foto'
+        lblSpecies: 'Espécie', lblQR: 'QR', lblMeasured: 'Última medição', lblProgram: 'Programa', lblPhoto: 'Foto',
+        lblStatus: 'Status', lblSource: 'Origem do envio', monitorThis: 'Monitorar esta árvore'
       },
       en: {
         pageLabel: 'Page:',
@@ -177,6 +178,7 @@
       document.querySelectorAll('[data-i18n]').forEach((el) => {
         el.textContent = t(el.getAttribute('data-i18n'));
       });
+      retranslate();
     }
 
     function onNavChange() {
@@ -199,6 +201,29 @@
     function $(id) { return document.getElementById(id); }
     function setStatus(msg, cls) { const s = $('status'); s.textContent = msg || ''; s.className = 'status' + (cls ? ' ' + cls : ''); }
     function esc(v) { return (v === null || v === undefined) ? '' : String(v).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // Dynamic content is rendered with t() at render time, so a language switch
+    // must re-render it (not just the [data-i18n] static nodes). We remember the
+    // last rendered state so setLang() can replay it in the new language.
+    let lastTrees = null;
+    let lastStatus = { key: null, cls: '' };
+    let lastBanner = { key: null, cls: '' };
+    function applyStatus(key, cls) { lastStatus = { key: key, cls: cls || '' }; setStatus(key ? t(key) : '', cls); }
+    function applyBanner(key, cls) {
+      lastBanner = { key: key, cls: cls || '' };
+      $('banner').innerHTML = key ? '<div class="banner ' + cls + '">' + esc(t(key)) + '</div>' : '';
+    }
+    function renderTrees(mine) {
+      lastTrees = mine || null;
+      if (!mine || mine.length === 0) { $('count').textContent = ''; $('treeList').innerHTML = ''; return; }
+      $('count').textContent = (mine.length === 1) ? t('countOne') : t('countMany').replace('{n}', mine.length);
+      $('treeList').innerHTML = mine.map((f, i) => treeCard(f, i)).join('');
+    }
+    function retranslate() {
+      applyStatus(lastStatus.key, lastStatus.cls);
+      applyBanner(lastBanner.key, lastBanner.cls);
+      renderTrees(lastTrees);
+    }
 
     async function fetchFeed() {
       let lastErr = null;
@@ -255,14 +280,14 @@
     }
 
     async function init() {
-      setStatus(t('deriving'));
+      applyStatus('deriving');
       let pub = '';
       try { pub = localStorage.getItem('publicKey') || ''; } catch (_) { pub = ''; }
 
       if (!pub) {
         $('identityValue').textContent = '—';
-        setStatus(t('noKey'), 'error');
-        $('banner').innerHTML = '<div class="banner warn">' + esc(t('noKeyHint')) + '</div>';
+        applyStatus('noKey', 'error');
+        applyBanner('noKeyHint', 'warn');
         return;
       }
 
@@ -270,35 +295,34 @@
       try {
         myHash = await PayoutRegistrationUtils.derivePkHash(pub);
       } catch (e) {
-        setStatus(t('noKey'), 'error');
+        applyStatus('noKey', 'error');
         return;
       }
       $('identityValue').textContent = PayoutRegistrationUtils.maskPkHash(myHash);
 
-      setStatus(t('loading'), 'info');
+      applyStatus('loading', 'info');
       let feed;
       try {
         feed = await fetchFeed();
       } catch (e) {
-        setStatus(t('feedError'), 'error');
+        applyStatus('feedError', 'error');
         return;
       }
 
       const features = (feed && feed.features) || [];
       if (MyTreesUtils.countWithPkHash(features) === 0) {
-        setStatus('');
-        $('banner').innerHTML = '<div class="banner note">' + esc(t('feedNotRebuilt')) + '</div>';
+        applyStatus(null);
+        applyBanner('feedNotRebuilt', 'note');
         return;
       }
 
       const mine = MyTreesUtils.sortByLastMeasured(MyTreesUtils.filterTreesByPkHash(features, myHash));
       if (mine.length === 0) {
-        setStatus(t('zero'), 'info');
+        applyStatus('zero', 'info');
         return;
       }
-      setStatus('');
-      $('count').textContent = (mine.length === 1) ? t('countOne') : t('countMany').replace('{n}', mine.length);
-      $('treeList').innerHTML = mine.map((f, i) => treeCard(f, i)).join('');
+      applyStatus(null);
+      renderTrees(mine);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
