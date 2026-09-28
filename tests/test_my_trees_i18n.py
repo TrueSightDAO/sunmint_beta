@@ -71,6 +71,20 @@ class TestMyTreesI18n(unittest.TestCase):
         self.assertRegex(self.html, r"function retranslate\s*\(\s*\)")
         self.assertRegex(self.html, r"function renderTrees\s*\(")
 
+    def test_status_values_are_translated(self):
+        # Chip VALUES are data keywords but user-facing; each must have a pt+en
+        # key and the renderer must route the chip label through statusLabel().
+        for key in ("statusNEW", "statusLINKED", "statusSOLD", "statusINVALID"):
+            self.assertGreaterEqual(
+                self.html.count(key + ":"), 2, f"{key} must exist in both pt and en"
+            )
+        self.assertRegex(self.html, r"function statusLabel\s*\(")
+        # The chip must translate its value (not emit the raw keyword).
+        self.assertRegex(
+            self.html,
+            r"class=\"chip '\s*\+\s*status\s*\+\s*'\">'\s*\+\s*esc\(statusLabel\(",
+        )
+
     def test_dynamic_labels_use_t_helper(self):
         for key in ("lblSpecies", "lblMeasured", "lblSource", "monitorThis", "countMany"):
             self.assertIn(f"t('{key}')", self.html, f"{key} must go through t()")
