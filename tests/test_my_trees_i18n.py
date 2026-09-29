@@ -160,8 +160,9 @@ class TestMyTreesI18n(unittest.TestCase):
             self.assertGreaterEqual(
                 self.html.count(key + ":"), 2, f"{key} must exist in both pt and en"
             )
-        # the keyless branch fetches the feed and renders ONLY the matches
-        self.assertIn("MyTreesUtils.featuresMatchingTreeId(", self.html)
+        # the keyless branch fetches the feed and renders ONLY the matches, via
+        # the shared pure resolver (also used by the keyed fallback path).
+        self.assertIn("MyTreesUtils.resolveDeepLink(", self.html)
         self.assertRegex(self.html, r"if \(!linkTx && !linkTree\)")
         self.assertIn("applyStatus('publicView'", self.html)
 

@@ -163,9 +163,29 @@
         });
     }
 
+    /**
+     * Resolve a ?tx= / ?tree= deep link to the feature(s) it points at, from a
+     * FULL public feed, independent of the viewer's identity. Prefers an EXACT
+     * ?tree= match; falls back to a ?tx= substring match; returns [] when neither
+     * matches (never the whole feed). Pure + isomorphic, so it is unit-testable
+     * in Node and reused by both the keyless and the keyed code paths.
+     */
+    function resolveDeepLink(features, opts) {
+        var o = opts || {};
+        var tree = _str(o.tree).trim();
+        if (tree) {
+            var byTree = featuresMatchingTreeId(features, tree);
+            if (byTree.length) return byTree;
+        }
+        var tx = _str(o.tx).trim();
+        if (tx) return featuresMatchingTxid(features, tx);
+        return [];
+    }
+
     var utils = {
         LEDGER_EXPLORER_URL: LEDGER_EXPLORER_URL,
         buildLedgerLink: buildLedgerLink,
+        resolveDeepLink: resolveDeepLink,
         featureMatchesPkHash: featureMatchesPkHash,
         filterTreesByPkHash: filterTreesByPkHash,
         filterByQuery: filterByQuery,

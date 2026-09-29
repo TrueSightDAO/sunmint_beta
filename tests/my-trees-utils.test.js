@@ -218,5 +218,38 @@ function feat(pk, id, extra) {
         assert.strictEqual(M.featuresMatchingTxid(feed, 'SAME').length, 2);
     });
 
+    // -- resolveDeepLink: the pure deep-link resolver (REGRESSION, Gary 2026-09-29) --
+    await test('resolveDeepLink: a valid ?tree= wins even when a NON-matching ?tx= is also present', () => {
+        const feed = [feat(PK_A, 'Edgar_20260821175134_006', { request_txid: 'AAAA' })];
+        const got = M.resolveDeepLink(feed, { tree: 'Edgar_20260821175134_006', tx: 'ZZZZ_not_the_txid' });
+        assert.deepStrictEqual(got.map(f => f.properties.tree_id), ['Edgar_20260821175134_006']);
+    });
+
+    await test('resolveDeepLink: exact ?tree= is preferred over a broad ?tx= substring', () => {
+        const feed = [feat(PK_A, 'T1', { request_txid: 'PRE_T2_X' }), feat(PK_A, 'T2', { request_txid: 'NOPE' })];
+        assert.deepStrictEqual(M.resolveDeepLink(feed, { tree: 'T2', tx: 'T' }).map(f => f.properties.tree_id), ['T2']);
+    });
+
+    await test('resolveDeepLink: ?tx= substring returns ALL matches (shared txid never picks one)', () => {
+        const feed = [feat(PK_A, 'T1', { request_txid: 'SAME' }), feat(PK_A, 'T2', { request_txid: 'SAME' }), feat(PK_A, 'T3', { request_txid: 'OTHER' })];
+        assert.deepStrictEqual(M.resolveDeepLink(feed, { tx: 'SAME' }).map(f => f.properties.tree_id), ['T1', 'T2']);
+    });
+
+    await test('resolveDeepLink: neither param matches -> [] (never the whole feed)', () => {
+        const feed = [feat(PK_A, 'T1', { request_txid: 'X' })];
+        assert.deepStrictEqual(M.resolveDeepLink(feed, { tree: 'NOPE', tx: 'NOPE' }), []);
+        assert.deepStrictEqual(M.resolveDeepLink(feed, {}), []);
+        assert.deepStrictEqual(M.resolveDeepLink(null, { tx: 'x' }), []);
+    });
+
+    await test('resolveDeepLink: a full 344-char txid matches; a MIDDLE-char corruption does not', () => {
+        const tx = "HdRM45+q9x81dxQoWhzwllCOKiJ89h3X6y4khLL1ilQrGCwqBY1g7PMZajvGhbb4ULa+KhqCyKD21+tI3uaBHrmkmkr7kheny/euMUJtCBxnMMyCNwe4NCE3KbMsgh+IKHhPi6ybk88klXZPY5VEOFMdlyTPvAX/fZy6GxlYM2ephHNJaRqfvwPGvg2M+9pbSgsZaRWx8DPAC5iFjrqjY/NKvpfE9kqlVeL1yOu1er9kTZSMI1e411ChBgibOBQvcJBeNORpPBMetFYHlu93Tj8jYs8v+wSLDZ/4s87bcKp3cHlhqvbEWZD2MZxfQyqieBJGXmvv0M3tRifE5FSKgA==";
+        assert.strictEqual(tx.length, 344);
+        const feed = [feat(PK_A, 'T1', { request_txid: tx })];
+        assert.strictEqual(M.resolveDeepLink(feed, { tx: tx }).length, 1, 'exact 344-char id matches');
+        const midBroken = tx.slice(0, 216) + 'Q' + tx.slice(217);
+        assert.strictEqual(M.resolveDeepLink(feed, { tx: midBroken }).length, 0, 'a middle-char corruption must not match');
+    });
+
     console.log('\nmy-trees-utils: ' + passed + ' passed' + (process.exitCode ? ', FAILURES' : ', 0 failed'));
 })();
