@@ -97,6 +97,25 @@
         return list.filter(function (f) { return featureMatchesQuery(f, q); });
     }
 
+    /**
+     * Features whose request_txid CONTAINS txid (case-insensitive substring).
+     * Backs the ?tx=<transaction request id> deep link (Gary 2026-09-29): a
+     * governor copies the id (or its link) and shares it with a payee, and the
+     * matching tree scrolls into view. A full 344-char id is one-per-tree in
+     * practice, but the public feed can carry duplicate rows for a submission
+     * (observed 148 distinct ids / 154 trees), so return ALL matches and let
+     * the page reveal a count instead of silently picking one.
+     */
+    function featuresMatchingTxid(features, txid) {
+        var list = Array.isArray(features) ? features : [];
+        var q = _str(txid).trim().toLowerCase();
+        if (!q) return [];
+        return list.filter(function (f) {
+            var p = (f && f.properties) || {};
+            return _str(p.request_txid).toLowerCase().indexOf(q) >= 0;
+        });
+    }
+
     // PR4 cross-link (plans/TRUESIGHT_LEDGER_EXPLORER_PLAN.md): a tree's
     // `tree_id` (e.g. Edgar_20260821175134_006) equals the ledger TREE PLANTING
     // event's `telegram_message_id`, so the public Ledger Explorer resolves the
@@ -134,6 +153,7 @@
         featureMatchesPkHash: featureMatchesPkHash,
         filterTreesByPkHash: filterTreesByPkHash,
         filterByQuery: filterByQuery,
+        featuresMatchingTxid: featuresMatchingTxid,
         sortByLastMeasured: sortByLastMeasured,
         normalizeStatus: normalizeStatus,
         milestones: milestones,
