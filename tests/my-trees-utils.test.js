@@ -187,5 +187,22 @@ function feat(pk, id, extra) {
         }
     });
 
+    await test('featuresMatchingTxid: substring + case-insensitive; blank/null -> none', () => {
+        const feed = [
+            feat(PK_A, 'T1', { request_txid: 'Edgar_20260924115448_047_ABCDEF' }),
+            feat(PK_A, 'T2', { request_txid: 'Edgar_20260924115503_049_ABCDEF' }),
+            feat(PK_A, 'T3', {}),
+        ];
+        assert.deepStrictEqual(M.featuresMatchingTxid(feed, 'edgar_2026092411').map(f => f.properties.tree_id), ['T1', 'T2']);
+        assert.deepStrictEqual(M.featuresMatchingTxid(feed, '047_ABC').map(f => f.properties.tree_id), ['T1']);
+        assert.deepStrictEqual(M.featuresMatchingTxid(feed, '   '), []);
+        assert.deepStrictEqual(M.featuresMatchingTxid(null, 'x'), []);
+    });
+
+    await test('featuresMatchingTxid: a SHARED txid returns ALL matching trees (never picks one)', () => {
+        const feed = [feat(PK_A, 'T1', { request_txid: 'SAME' }), feat(PK_A, 'T2', { request_txid: 'SAME' }), feat(PK_A, 'T3', { request_txid: 'OTHER' })];
+        assert.strictEqual(M.featuresMatchingTxid(feed, 'SAME').length, 2);
+    });
+
     console.log('\nmy-trees-utils: ' + passed + ' passed' + (process.exitCode ? ', FAILURES' : ', 0 failed'));
 })();

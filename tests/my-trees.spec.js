@@ -37,6 +37,7 @@ async function feedFor(pkHash) {
           photo_url: 'https://example.com/m1.jpg', status: 'LINKED',
           qr_code: 'QR_MINE_1', last_measured: '2026-09-01T00:00:00Z',
           program: 'crf-anapu', submission_source: 'https://sunmint.truesight.me/',
+          request_txid: 'Edgar_20260901000000_001_SIGAAA',
           pk_hash: pkHash,
         },
       },
@@ -47,6 +48,7 @@ async function feedFor(pkHash) {
           tree_id: 'MINE_2', species: 'Cacao - Trinitario',
           photo_url: 'https://example.com/m2.jpg', status: 'NEW',
           qr_code: null, last_measured: null, program: 'crf-anapu',
+          request_txid: 'Edgar_20260902000000_002_SIGBBB',
           pk_hash: pkHash,
         },
       },
@@ -190,4 +192,48 @@ test('ledger link (PR4b) and the lifecycle checklist (R1) coexist on one card', 
   const card = page.locator('.tree-card').first();
   await expect(card.locator('.tc-milestones li')).toHaveCount(5);          // my feature
   await expect(card.locator('a[href*="ledger_explorer.html?q="]')).toHaveCount(1); // their feature
+});
+
+test('the txid renders as Copy ID / Copy link affordances (Gary)', async ({ page }) => {
+  await openWithKey(page);
+  await page.waitForSelector('.tree-card');
+  await page.locator('.tree-card .tc-toggle').first().click();
+  const card = page.locator('.tree-card').first();
+  // copy affordances live in BOTH the always-visible row and the expanded
+  // details (2 + 2): the id is copyable before and after expanding.
+  await expect(card.locator('.tc-meta a.tc-copy')).toHaveCount(2);
+  await expect(card.locator('.tc-details a.tc-copy')).toHaveCount(2);
+  await expect(card.locator('a.tc-copy').first()).toContainText('Copy ID');
+  await expect(card.locator('a.tc-copy').nth(1)).toContainText('Copy link');
+});
+
+test('a ?tx=<id> deep link filters to, scrolls to and expands the matching tree (Gary)', async ({ page }) => {
+  await openWithKey(page);
+  await page.waitForSelector('.tree-card');
+  await page.goto('/my-trees/?tx=' + encodeURIComponent('Edgar_20260901000000_001'));
+  const card = page.locator('.tree-card[data-tree="MINE_1"]');
+  await expect(card).toHaveClass(/is-selected/);
+  await expect(card.locator('.tc-details')).toBeVisible();
+  await expect(page.locator('#txidFilter')).toHaveValue('Edgar_20260901000000_001');
+});
+
+test('a shared txid deep link expands EVERY match and shows the count note', async ({ page }) => {
+  const pkHash = derivePkHashSync(PUB);
+  const shared = 'Edgar_20260925000000_SHARED_SIG';
+  const feed = { type: 'FeatureCollection', features: [
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { tree_id: 'S1', status: 'NEW', pk_hash: pkHash, request_txid: shared, photo_url: 'https://e.com/s.jpg' } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { tree_id: 'S2', status: 'NEW', pk_hash: pkHash, request_txid: shared, photo_url: 'https://e.com/s.jpg' } },
+  ] };
+  await stubFeed(page, feed);
+  await page.addInitScript(([p]) => { localStorage.setItem('publicKey', p); localStorage.setItem('sunmint_lang', 'en'); }, [PUB]);
+  await page.goto('/my-trees/?tx=' + encodeURIComponent(shared));
+  await expect(page.locator('.tree-card.is-selected')).toHaveCount(2);
+  await expect(page.locator('#count')).toContainText('matches 2 trees');
+});
+
+test('a ?tx= deep link that matches nothing shows the honest no-match notice', async ({ page }) => {
+  await openWithKey(page);
+  await page.waitForSelector('.tree-card');
+  await page.goto('/my-trees/?tx=' + encodeURIComponent('NOPE_does_not_exist'));
+  await expect(page.locator('.tree-card.is-selected')).toHaveCount(0);
 });

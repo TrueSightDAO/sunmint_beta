@@ -92,6 +92,9 @@
     .tc-milestones .ok { color: #1e6b34; font-weight: 700; }
     .tc-milestones .no { color: #b0b0b0; font-weight: 700; }
     .tc-ms-note { font-size: 0.72rem; color: #888; }
+    .tree-card .tc-copy { font-size: 0.72rem; color: #1a4d8f; text-decoration: none; margin-left: 0.35rem; white-space: nowrap; }
+    .tree-card .tc-copy:hover { text-decoration: underline; }
+    .tree-card .tc-copy.copied { color: #1e6b34; font-weight: 700; }
     @media (max-width: 420px) {
       .tree-card img.tc-photo { width: 96px; height: 96px; }
     }
@@ -163,11 +166,16 @@
         ledgerLink: 'Ver registro no livro-razão',
         lblTxid: 'ID da transação',
         filterLabel: 'Filtrar por ID da transação',
-        filterPlaceholder: 'ex.: Edgar_20260924 ou o ID completo',
+        filterPlaceholder: 'ex.: Edgar_20260924 ou cole o ID completo',
         zeroFiltered: 'Nenhuma árvore corresponde a este filtro.',
         statusNEW: 'Novo', statusLINKED: 'Vinculada', statusSOLD: 'Vendida', statusINVALID: 'Inválida',
         msHeading: 'Ciclo de vida', msPlanted: 'Plantada', msPhoto: 'Foto registrada', msQrLinked: 'QR vinculado', msSigned: 'Assinada', msSold: 'Vendida',
-        msNote: 'Pagamento e monitoramento ficam no registro da DAO, não no feed público.'
+        msNote: 'Pagamento e monitoramento ficam no registro da DAO, não no feed público.',
+        copyTxid: 'Copiar ID', copyLink: 'Copiar link', copied: 'Copiado!',
+        copyUnavailable: 'Falha ao copiar - selecione o texto manualmente.',
+        txidDeepLinkNote: 'Link direto para este ID: {url}',
+        txidMultiNote: 'Este ID de transação corresponde a {n} árvores.',
+        deepLinkNoMatch: 'Nenhuma árvore corresponde a este link.'
       },
       en: {
         pageLabel: 'Page:',
@@ -190,11 +198,16 @@
         ledgerLink: 'View ledger record',
         lblTxid: 'Transaction request ID',
         filterLabel: 'Filter by transaction request ID',
-        filterPlaceholder: 'e.g. Edgar_20260924 or the full ID',
+        filterPlaceholder: 'e.g. Edgar_20260924 or paste the full id',
         zeroFiltered: 'No trees match this filter.',
         statusNEW: 'New', statusLINKED: 'Linked', statusSOLD: 'Sold', statusINVALID: 'Invalid',
         msHeading: 'Lifecycle', msPlanted: 'Planted', msPhoto: 'Photo on record', msQrLinked: 'QR linked', msSigned: 'Signed', msSold: 'Sold',
-        msNote: 'Payment and monitoring live in the DAO record, not the public feed.'
+        msNote: 'Payment and monitoring live in the DAO record, not the public feed.',
+        copyTxid: 'Copy ID', copyLink: 'Copy link', copied: 'Copied!',
+        copyUnavailable: 'Copy failed - select the text manually.',
+        txidDeepLinkNote: 'Direct link for this transaction request ID: {url}',
+        txidMultiNote: 'This transaction request ID matches {n} trees.',
+        deepLinkNoMatch: 'No tree matches this link.'
       }
     };
 
@@ -278,7 +291,11 @@
         $('treeList').innerHTML = '<div class="status info">' + esc(t('zeroFiltered')) + '</div>';
         return;
       }
-      $('count').textContent = (shown.length === 1) ? t('countOne') : t('countMany').replace('{n}', shown.length);
+      let cnt = (shown.length === 1) ? t('countOne') : t('countMany').replace('{n}', shown.length);
+      const q = (box ? (box.value || '') : '').trim();
+      const txMatches = q ? MyTreesUtils.featuresMatchingTxid(shown, q) : [];
+      if (txMatches.length > 1) cnt += ' ' + t('txidMultiNote').replace('{n}', txMatches.length);
+      $('count').textContent = cnt;
       $('treeList').innerHTML = shown.map((f, i) => treeCard(f, i)).join('');
     }
     function renderTrees(mine) {
@@ -290,6 +307,7 @@
       applyStatus(lastStatus.key, lastStatus.cls);
       applyBanner(lastBanner.key, lastBanner.cls);
       renderTrees(lastTrees);
+      try { focusTreeFromUrl(); } catch (_) {}
     }
 
     async function fetchFeed() {
@@ -316,7 +334,9 @@
       if (p.qr_code) rows.push(t('lblQR') + ': ' + esc(p.qr_code));
       if (p.last_measured) rows.push(t('lblMeasured') + ': ' + esc(String(p.last_measured).slice(0, 10)));
       if (p.program) rows.push(t('lblProgram') + ': ' + esc(p.program));
-      if (p.request_txid) rows.push(t('lblTxid') + ': <span class="tc-txid">' + esc(shortTxid(p.request_txid)) + '</span>');
+      if (p.request_txid) rows.push(t('lblTxid') + ': <span class="tc-txid">' + esc(shortTxid(p.request_txid)) + '</span>'
+        + ' <a href="#" class="tc-copy" onclick="return copyTxid(' + JSON.stringify(p.request_txid) + ', this)">' + t('copyTxid') + '</a>'
+        + ' <a href="#" class="tc-copy" onclick="return copyTxidLink(' + JSON.stringify(p.request_txid) + ', this)">' + t('copyLink') + '</a>');
 
       const treeId = String(p.tree_id || '');
       const det = [];
@@ -326,7 +346,13 @@
       if (p.last_measured) det.push('<div><strong>' + t('lblMeasured') + ':</strong> ' + esc(String(p.last_measured).slice(0, 10)) + '</div>');
       if (p.program) det.push('<div><strong>' + t('lblProgram') + ':</strong> ' + esc(p.program) + '</div>');
       if (p.submission_source) det.push('<div><strong>' + t('lblSource') + ':</strong> ' + esc(p.submission_source) + '</div>');
-      if (p.request_txid) det.push('<div><strong>' + t('lblTxid') + ':</strong> <span class="tc-txid">' + esc(p.request_txid) + '</span></div>');
+      if (p.request_txid) {
+        det.push('<div><strong>' + t('lblTxid') + ':</strong> <span class="tc-txid">' + esc(p.request_txid) + '</span>'
+          + ' <a href="#" class="tc-copy" onclick="return copyTxid(' + JSON.stringify(p.request_txid) + ', this)">' + t('copyTxid') + '</a>'
+          + ' <a href="#" class="tc-copy" onclick="return copyTxidLink(' + JSON.stringify(p.request_txid) + ', this)">' + t('copyLink') + '</a></div>');
+        const _href = txidLinkHref(p.request_txid);
+        if (_href) det.push('<div class="tc-ms-note tc-deeplink">' + esc(t('txidDeepLinkNote').replace('{url}', window.location.origin + _href)) + '</div>');
+      }
       const ms = MyTreesUtils.milestones(p);
       det.push('<div class="tc-ms"><strong>' + t('msHeading') + ':</strong><ul class="tc-milestones">' +
         ms.map(function (m) {
@@ -346,7 +372,7 @@
         '<a class="tc-monitor" href="' + esc(monitorHref) + '" onclick="event.stopPropagation()">' + t('monitorThis') + ' \u2192</a>' +
         ledgerLink + '</div>';
 
-      return '<div class="tree-card" id="' + cardId + '" data-tree="' + esc(treeId) + '" onclick="onCardClick(event, this)">' + photo +
+      return '<div class="tree-card" id="' + cardId + '" data-tree="' + esc(treeId) + '" data-txid="' + esc(p.request_txid || '') + '" onclick="onCardClick(event, this)">' + photo +
         '<div class="tc-main">' +
           '<div class="tc-id"><button type="button" class="tc-toggle" aria-expanded="false" aria-controls="' + detId + '" data-det="' + detId + '" onclick="toggleTreeDetails(event, this)">' + esc(treeId) + '</button>' + chip + '</div>' +
           '<div class="tc-meta">' + rows.join('<br>') + '</div>' +
@@ -379,6 +405,63 @@
         window.history.replaceState(null, '', u.pathname + u.search + u.hash);
       } catch (_) { /* URL API unavailable: deep-link degrades to no-op */ }
     }
+    // ── transaction request id as a shareable, copyable link ──────────────
+    // A governor copies the id and sends it (with its ?tx= URL) to a payee via
+    // WhatsApp; the payee opens the link and the tree scrolls into view. The raw
+    // id never leaves the page -- copy is client-side and there is no server hop.
+    function copyText(text) {
+      const s = String(text == null ? '' : text);
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(s)['catch'](function () {});
+        }
+      } catch (_) {}
+      return s;
+    }
+    function txidLinkHref(txid) {
+      try {
+        const u = new URL(window.location.href);
+        u.searchParams.set('tx', txid);
+        u.searchParams['delete']('tree');
+        return u.pathname + u.search;
+      } catch (_) { return ''; }
+    }
+    function flashCopied(el, msg) {
+      if (!el) return;
+      const prev = el.getAttribute('data-label') || el.textContent;
+      el.setAttribute('data-label', prev);
+      el.textContent = msg;
+      el.classList.add('copied');
+      setTimeout(function () { el.textContent = prev; el.classList.remove('copied'); }, 1400);
+    }
+    function copyTxid(txid, el) {
+      copyText(txid);
+      flashCopied(el, t('copied'));
+      return false;
+    }
+    function copyTxidLink(txid, el) {
+      const href = txidLinkHref(txid);
+      copyText(href ? (window.location.origin + href) : txid);
+      flashCopied(el, t('copied'));
+      return false;
+    }
+    function focusTreeFromUrlResult(ok, treeId, txid) {
+      if (ok || !(treeId || txid)) return;
+      // Nothing loaded (e.g. no planting identity on this device): the deep link
+      // simply cannot match, so keep the identity/no-key message rather than
+      // masking it with a "no match" warning.
+      if (!lastTrees || !lastTrees.length) return;
+      setStatus(t('deepLinkNoMatch'), 'warn');
+    }
+
+    // ?tx=<id> deep link support: drive the (already-wired) filter box, then let
+    // the caller scroll to the resulting row(s).
+    function setFilters(txid) {
+      const box = $('txidFilter');
+      if (box) box.value = txid || '';
+      applyFilter();
+    }
+
     function selectTree(treeId, opts) {
       opts = opts || {};
       const card = cardFor(treeId);
@@ -390,6 +473,18 @@
         catch (_) { try { card.scrollIntoView(); } catch (__) {} }
       }
       if (opts.updateUrl !== false) updateTreeParam(treeId);
+      return true;
+    }
+    // Expand + scroll to ONE OR MANY trees at once (a shared transaction id can
+    // match several rows). All matches are revealed so the ambiguity is visible.
+    function selectTreeMulti(treeIds) {
+      const ids = (treeIds || []).slice();
+      if (!ids.length) return false;
+      if (ids.length === 1) return selectTree(ids[0], { updateUrl: false });
+      clearSelection();
+      ids.forEach(function (id) { const c = cardFor(id); if (c) setCardExpanded(c, true); });
+      const first = cardFor(ids[0]);
+      if (first) { try { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {} }
       return true;
     }
     function onCardClick(ev, card) {
@@ -408,9 +503,19 @@
       else updateTreeParam('');
     }
     function focusTreeFromUrl() {
-      let id = '';
-      try { id = new URL(window.location.href).searchParams.get('tree') || ''; } catch (_) {}
-      if (id) selectTree(id, { updateUrl: false });
+      let params = null;
+      try { params = new URL(window.location.href).searchParams; } catch (_) {}
+      if (!params) return false;
+      // ?tree=<tree_id> is the canonical single-tree deep link.
+      const treeId = params.get('tree') || '';
+      if (treeId) return selectTree(treeId, { updateUrl: false });
+      // ?tx=<transaction request id> (Gary 2026-09-29): copy the id (or its link)
+      // and send it to a payee; the list filters to that id and scrolls there.
+      const tx = params.get('tx') || '';
+      if (!tx) return false;
+      setFilters(tx);
+      const matches = MyTreesUtils.featuresMatchingTxid(lastTrees || [], tx);
+      return selectTreeMulti(matches.map(function (f) { return (f.properties || {}).tree_id; }));
     }
 
     async function init() {
@@ -461,7 +566,10 @@
 
     document.addEventListener('DOMContentLoaded', function () {
       setLang(currentLang);
-      init().then(focusTreeFromUrl);
+      const _lp = new URLSearchParams(window.location.search);
+      init().then(focusTreeFromUrl).then(function (ok) {
+        focusTreeFromUrlResult(ok, _lp.get('tree'), _lp.get('tx'));
+      });
     });
   </script>
 </body>
