@@ -1291,12 +1291,6 @@
   </div>
 
   <!-- Offline support: network-first service worker (fresh by default, cached fallback offline) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-        .then(reg => console.log('Sunmint Service Worker registered:', reg.scope))
-        .catch(err => console.warn('Sunmint Service Worker registration failed:', err));
-    }
-  </script>
+  <script src="/sw-update.js"></script>
 </body>
 </html>

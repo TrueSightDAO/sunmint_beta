@@ -3,7 +3,7 @@
 // copies served only when the network is unreachable, so the farmer app
 // still loads in the field with no signal.
 
-const CACHE_NAME = 'sunmint-cache-v11';
+const CACHE_NAME = 'sunmint-cache-v12';
 
 const URLS_TO_CACHE = [
   './',
@@ -56,6 +56,12 @@ self.addEventListener('activate', (event) => {
       ))
       .then(() => self.clients.claim())
   );
+});
+
+// Allow the page to promote a waiting worker immediately (see the
+// "update available -> reload" prompt wired into the app pages below).
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
