@@ -175,7 +175,9 @@
         copyUnavailable: 'Falha ao copiar - selecione o texto manualmente.',
         txidDeepLinkNote: 'Link direto para este ID: {url}',
         txidMultiNote: 'Este ID de transação corresponde a {n} árvores.',
-        deepLinkNoMatch: 'Nenhuma árvore corresponde a este link.'
+        deepLinkNoMatch: 'Nenhuma árvore corresponde a este link.',
+        publicView: 'Visão pública — mostrando a árvore vinculada a este ID de transação.',
+        introPublic: 'Registro público da árvore vinculada a este ID de transação.'
       },
       en: {
         pageLabel: 'Page:',
@@ -207,7 +209,9 @@
         copyUnavailable: 'Copy failed - select the text manually.',
         txidDeepLinkNote: 'Direct link for this transaction request ID: {url}',
         txidMultiNote: 'This transaction request ID matches {n} trees.',
-        deepLinkNoMatch: 'No tree matches this link.'
+        deepLinkNoMatch: 'No tree matches this link.',
+        publicView: 'Public view — showing the tree linked to this transaction request ID.',
+        introPublic: 'Public record of the tree linked to this transaction request ID.'
       }
     };
 
@@ -519,17 +523,40 @@
     }
 
     async function init() {
-      applyStatus('deriving');
       let pub = '';
       try { pub = localStorage.getItem('publicKey') || ''; } catch (_) { pub = ''; }
+      const params = new URLSearchParams(window.location.search);
+      const linkTx = params.get('tx') || '';
+      const linkTree = params.get('tree') || '';
 
       if (!pub) {
         $('identityValue').textContent = '—';
-        applyStatus('noKey', 'error');
-        applyBanner('noKeyHint', 'warn');
+        // No identity on this device. A governor can still have shared a PUBLIC
+        // deep link (?tx= / ?tree=) with a payee who holds no key, so serve a
+        // read-only view of exactly the linked tree(s) from the public feed
+        // (Gary 2026-09-29). With no link, keep the honest no-identity state --
+        // the full feed is never dumped on an un-identified visitor.
+        if (!linkTx && !linkTree) {
+          applyStatus('noKey', 'error');
+          applyBanner('noKeyHint', 'warn');
+          return;
+        }
+        const introEl = document.querySelector('[data-i18n="intro"]');
+        if (introEl) { introEl.setAttribute('data-i18n', 'introPublic'); introEl.textContent = t('introPublic'); }
+        applyStatus('publicView', 'info');
+        let pfeed;
+        try { pfeed = await fetchFeed(); }
+        catch (e) { applyStatus('feedError', 'error'); return; }
+        const pfeatures = (pfeed && pfeed.features) || [];
+        const matches = linkTx
+          ? MyTreesUtils.featuresMatchingTxid(pfeatures, linkTx)
+          : MyTreesUtils.featuresMatchingTreeId(pfeatures, linkTree);
+        if (!matches.length) { applyStatus('deepLinkNoMatch', 'warn'); return; }
+        renderTrees(MyTreesUtils.sortByLastMeasured(matches));
         return;
       }
 
+      applyStatus('deriving');
       let myHash = '';
       try {
         myHash = await PayoutRegistrationUtils.derivePkHash(pub);

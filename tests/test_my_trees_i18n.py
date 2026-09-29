@@ -152,5 +152,19 @@ class TestMyTreesI18n(unittest.TestCase):
         self.assertRegex(self.html, r"function selectTreeMulti\s*\(")
 
 
+    def test_deep_link_works_for_keyless_visitor(self):
+        # Gary (2026-09-29): the ?tx= / ?tree= deep link must resolve for a
+        # visitor with NO identity -- a read-only public view of the linked
+        # tree(s) from the public feed, never the whole feed.
+        for key in ("publicView", "introPublic"):
+            self.assertGreaterEqual(
+                self.html.count(key + ":"), 2, f"{key} must exist in both pt and en"
+            )
+        # the keyless branch fetches the feed and renders ONLY the matches
+        self.assertIn("MyTreesUtils.featuresMatchingTreeId(", self.html)
+        self.assertRegex(self.html, r"if \(!linkTx && !linkTree\)")
+        self.assertIn("applyStatus('publicView'", self.html)
+
+
 if __name__ == "__main__":
     unittest.main()
