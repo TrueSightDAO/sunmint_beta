@@ -548,9 +548,7 @@
         try { pfeed = await fetchFeed(); }
         catch (e) { applyStatus('feedError', 'error'); return; }
         const pfeatures = (pfeed && pfeed.features) || [];
-        const matches = linkTx
-          ? MyTreesUtils.featuresMatchingTxid(pfeatures, linkTx)
-          : MyTreesUtils.featuresMatchingTreeId(pfeatures, linkTree);
+        const matches = MyTreesUtils.resolveDeepLink(pfeatures, { tree: linkTree, tx: linkTx });
         if (!matches.length) { applyStatus('deepLinkNoMatch', 'warn'); return; }
         renderTrees(MyTreesUtils.sortByLastMeasured(matches));
         return;
@@ -583,6 +581,33 @@
       }
 
       const mine = MyTreesUtils.sortByLastMeasured(MyTreesUtils.filterTreesByPkHash(features, myHash));
+
+      // A deep link (?tx= / ?tree=) names a SPECIFIC tree and must resolve for any
+      // visitor -- including a keyed one whose own planting identity is not that
+      // tree's signer (a device that already holds a key, opening a payee's link).
+      // Resolve the link against the WHOLE public feed; when it points at tree(s)
+      // that are not ours, serve a read-only public view of exactly those tree(s).
+      // REGRESSION GUARD (Gary 2026-09-29): before this a keyed device rendered
+      // "no trees for your identity" and silently dropped the link.
+      const linked = (linkTx || linkTree)
+        ? MyTreesUtils.resolveDeepLink(features, { tree: linkTree, tx: linkTx })
+        : [];
+      const mineIds = {};
+      mine.forEach(function (f) { mineIds[(f.properties || {}).tree_id] = true; });
+      const linkedNotMine = linked.filter(function (f) {
+        return !mineIds[(f.properties || {}).tree_id];
+      });
+      if (linkedNotMine.length) {
+        const introElLink = document.querySelector('[data-i18n="intro"]');
+        if (introElLink) {
+          introElLink.setAttribute('data-i18n', 'introPublic');
+          introElLink.textContent = t('introPublic');
+        }
+        applyStatus('publicView', 'info');
+        renderTrees(MyTreesUtils.sortByLastMeasured(linkedNotMine));
+        return;
+      }
+
       if (mine.length === 0) {
         applyStatus('zero', 'info');
         return;
