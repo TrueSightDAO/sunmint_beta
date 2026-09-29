@@ -191,7 +191,7 @@ test('ledger link (PR4b) and the lifecycle checklist (R1) coexist on one card', 
   await page.locator('.tree-card .tc-toggle').first().click();
   const card = page.locator('.tree-card').first();
   await expect(card.locator('.tc-milestones li')).toHaveCount(5);          // my feature
-  await expect(card.locator('a[href*="ledger_explorer.html?q="]')).toHaveCount(1); // their feature
+  await expect(card.locator('a[href*="/ledger/explorer/?q="]')).toHaveCount(1); // their feature
 });
 
 test('the txid renders as Copy ID / Copy link affordances (Gary)', async ({ page }) => {
