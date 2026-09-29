@@ -199,6 +199,20 @@ function feat(pk, id, extra) {
         assert.deepStrictEqual(M.featuresMatchingTxid(null, 'x'), []);
     });
 
+    await test('featuresMatchingTreeId: EXACT tree_id (trim/case-insensitive); blank -> none', () => {
+        const feed = [
+            feat(PK_A, 'Edgar_20260924_047', {}),
+            feat(PK_A, 'edgar_20260924_047', {}),
+            feat(PK_A, 'Edgar_20260924_0470', {}),
+            feat(PK_A, ' Edgar_20260924_047 ', {}),
+        ];
+        // exact match only neither the longer id nor a substring is selected
+        assert.strictEqual(M.featuresMatchingTreeId(feed, 'Edgar_20260924_047').length, 3);
+        assert.strictEqual(M.featuresMatchingTreeId(feed, 'EDGAR_20260924_047').length, 3);
+        assert.deepStrictEqual(M.featuresMatchingTreeId(feed, '   '), []);
+        assert.deepStrictEqual(M.featuresMatchingTreeId(null, 'x'), []);
+    });
+
     await test('featuresMatchingTxid: a SHARED txid returns ALL matching trees (never picks one)', () => {
         const feed = [feat(PK_A, 'T1', { request_txid: 'SAME' }), feat(PK_A, 'T2', { request_txid: 'SAME' }), feat(PK_A, 'T3', { request_txid: 'OTHER' })];
         assert.strictEqual(M.featuresMatchingTxid(feed, 'SAME').length, 2);

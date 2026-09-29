@@ -237,3 +237,76 @@ test('a ?tx= deep link that matches nothing shows the honest no-match notice', a
   await page.goto('/my-trees/?tx=' + encodeURIComponent('NOPE_does_not_exist'));
   await expect(page.locator('.tree-card.is-selected')).toHaveCount(0);
 });
+
+// ── Gary 2026-09-29: the deep link must work for a visitor with NO identity ──
+// A governor copies the transaction request id (or its ?tx= link) and sends it
+// to a payee via WhatsApp. The payee holds no planting key, so the page must
+// serve a PUBLIC, read-only view of exactly the linked tree(s) -- not the
+// no-identity dead end, and never the whole feed.
+
+function publicFeed() {
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature', geometry: { type: 'Point', coordinates: [-39.0, -13.0] },
+        properties: {
+          tree_id: 'PAYEE_TREE', species: 'Cacao - Criolla',
+          photo_url: 'https://example.com/p.jpg', status: 'LINKED',
+          qr_code: 'QR_PAYEE', last_measured: '2026-09-10T00:00:00Z',
+          program: 'crf-anapu', request_txid: 'Edgar_20260910120000_900_PAYEESIG',
+          pk_hash: 'pk-SOMEONEELSE999',
+        },
+      },
+      {
+        type: 'Feature', geometry: { type: 'Point', coordinates: [-39.1, -13.1] },
+        properties: {
+          tree_id: 'NOT_LINKED', species: 'Cacao - Trinitario',
+          photo_url: 'https://example.com/n.jpg', status: 'NEW',
+          request_txid: 'Edgar_20260910120001_901_OTHER', pk_hash: 'pk-OTHERPERSON99',
+        },
+      },
+    ],
+  };
+}
+
+async function openKeyless(page, query) {
+  await page.route('**/trees/index.geojson*', (r) => r.fulfill({ json: publicFeed() }));
+  await page.addInitScript(() => {
+    localStorage.removeItem('publicKey');
+    localStorage.setItem('sunmint_lang', 'en');
+  });
+  await page.goto('/my-trees/' + (query || ''));
+}
+
+test('KEYLESS ?tx= link shows a public read-only view of the linked tree (Gary)', async ({ page }) => {
+  await openKeyless(page, '?tx=' + encodeURIComponent('Edgar_20260910120000_900_PAYEESIG'));
+  await page.waitForSelector('.tree-card');
+  // exactly the linked tree, expanded and selected -- NOT the unrelated one
+  await expect(page.locator('.tree-card')).toHaveCount(1);
+  const card = page.locator('.tree-card[data-tree="PAYEE_TREE"]');
+  await expect(card).toHaveCount(1);
+  await expect(page.locator('.tree-card[data-tree="NOT_LINKED"]')).toHaveCount(0);
+  await expect(card).toHaveClass(/is-selected/);
+  await expect(card.locator('.tc-details')).toBeVisible();
+  await expect(page.locator('#status')).toContainText(/Public view|Visão pública/);
+});
+
+test('KEYLESS ?tree= link shows the linked tree (Gary)', async ({ page }) => {
+  await openKeyless(page, '?tree=' + encodeURIComponent('PAYEE_TREE'));
+  await page.waitForSelector('.tree-card');
+  await expect(page.locator('.tree-card')).toHaveCount(1);
+  await expect(page.locator('.tree-card[data-tree="PAYEE_TREE"]')).toHaveCount(1);
+});
+
+test('KEYLESS visitor with NO link still gets the honest no-identity state', async ({ page }) => {
+  await openKeyless(page, '');
+  await expect(page.locator('#status')).toContainText(/No planting identity|Nenhuma identidade/);
+  expect(await page.locator('.tree-card').count()).toBe(0);
+});
+
+test('KEYLESS ?tx= link that matches nothing shows the honest deepLinkNoMatch', async ({ page }) => {
+  await openKeyless(page, '?tx=' + encodeURIComponent('NOPE_not_a_txid'));
+  await expect(page.locator('#status')).toContainText(/No tree matches|Nenhuma árvore corresponde/);
+  expect(await page.locator('.tree-card').count()).toBe(0);
+});

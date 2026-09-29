@@ -147,6 +147,22 @@
         ];
     }
 
+    /**
+     * Features whose tree_id EQUALS treeId (trimmed, case-insensitive). Backs the
+     * PUBLIC (keyless) ?tree=<id> deep link: the viewer holds no identity, so we
+     * select straight from the public feed. Returns ALL matches so a duplicated
+     * row stays visible rather than being silently collapsed.
+     */
+    function featuresMatchingTreeId(features, treeId) {
+        var list = Array.isArray(features) ? features : [];
+        var q = _str(treeId).trim().toLowerCase();
+        if (!q) return [];
+        return list.filter(function (f) {
+            var p = (f && f.properties) || {};
+            return _str(p.tree_id).trim().toLowerCase() === q;
+        });
+    }
+
     var utils = {
         LEDGER_EXPLORER_URL: LEDGER_EXPLORER_URL,
         buildLedgerLink: buildLedgerLink,
@@ -154,6 +170,7 @@
         filterTreesByPkHash: filterTreesByPkHash,
         filterByQuery: filterByQuery,
         featuresMatchingTxid: featuresMatchingTxid,
+        featuresMatchingTreeId: featuresMatchingTreeId,
         sortByLastMeasured: sortByLastMeasured,
         normalizeStatus: normalizeStatus,
         milestones: milestones,
