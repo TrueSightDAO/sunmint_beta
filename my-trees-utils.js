@@ -120,7 +120,7 @@
     // `tree_id` (e.g. Edgar_20260821175134_006) equals the ledger TREE PLANTING
     // event's `telegram_message_id`, so the public Ledger Explorer resolves the
     // tree's planting/payout receipt directly via ?q=<tree_id>.
-    var LEDGER_EXPLORER_URL = 'https://beta.truesight.me/ledger/explorer/';
+    var LEDGER_EXPLORER_URL = 'https://truesight.me/ledger/explorer/';
 
     /** Deep-link into the Ledger Explorer for a tree id ('' when no id). */
     function buildLedgerLink(treeId) {

@@ -142,7 +142,7 @@ function feat(pk, id, extra) {
 
     await test('buildLedgerLink: deep-links the Ledger Explorer for a tree id', async () => {
         assert.strictEqual(M.buildLedgerLink('Edgar_20260821175134_006'),
-            'https://beta.truesight.me/ledger/explorer/?q=Edgar_20260821175134_006');
+            'https://truesight.me/ledger/explorer/?q=Edgar_20260821175134_006');
     });
     await test('buildLedgerLink: empty / whitespace / null yields ""', async () => {
         assert.strictEqual(M.buildLedgerLink(''), '');
@@ -152,7 +152,7 @@ function feat(pk, id, extra) {
     });
     await test('buildLedgerLink: encodes unsafe chars in the tree id', async () => {
         assert.strictEqual(M.buildLedgerLink('a b/c'),
-            'https://beta.truesight.me/ledger/explorer/?q=a%20b%2Fc');
+            'https://truesight.me/ledger/explorer/?q=a%20b%2Fc');
     });
     await test('milestones: a fully-linked tree ticks planted/photo/qr/signed', () => {
         const ms = M.milestones({ status: 'LINKED', last_measured: '2026-09-01T00:00:00Z',
